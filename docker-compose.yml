@@ -1,0 +1,36 @@
+services:
+  openclaw:
+    build:
+      context: .
+      dockerfile: Dockerfile.openclaw
+    container_name: syntrixa-openclaw
+    hostname: openclaw
+    env_file:
+      - .env
+    working_dir: /workspace/openclaw-workspace
+    volumes:
+      - ./openclaw-workspace:/workspace/openclaw-workspace
+      - openclaw-state:/home/openclaw/.openclaw
+    ports:
+      - "18789:18789"
+    expose:
+      - "18789"
+    environment:
+      OPENCLAW_STATE_DIR: /home/openclaw/.openclaw
+      OPENCLAW_GATEWAY_HOST: 0.0.0.0
+      OPENCLAW_GATEWAY_PORT: 18789
+      N8N_BASE_URL: http://n8n:5678
+      N8N_OPENCLAW_WEBHOOK_PATH: /webhook/openclaw
+      OPENCLAW_NO_RESPAWN: "1"
+      NODE_COMPILE_CACHE: /var/tmp/openclaw-compile-cache
+    networks:
+      syntrixa:
+        aliases:
+          - openclaw
+
+networks:
+  syntrixa:
+    name: syntrixa
+
+volumes:
+  openclaw-state:

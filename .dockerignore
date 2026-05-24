@@ -1,0 +1,7 @@
+.git
+.openclaw
+openclaw-state
+node_modules
+*.log
+__pycache__
+.pytest_cache
