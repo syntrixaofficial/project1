@@ -1,0 +1,1560 @@
+{
+"name": "Syntrixa Internal Agent OS - Master Architectural Framework",
+"nodes": [
+{
+"parameters": {
+"httpMethod": "POST",
+"path": "openclaw/intent",
+"options": {}
+},
+"id": "e0d16eb3-f32b-422f-bb64-8848d70b6d2a",
+"name": "UTIL001 core.intent.gateway",
+"type": "n8n-nodes-base.webhook",
+"typeVersion": 1,
+"position": [250, 300],
+"webhookId": "syntrixa-openclaw-intent-gateway"
+},
+{
+"parameters": {
+"rules": {
+"values": [
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.type }}",
+"rightValue": "workflow_request",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+},
+"renameExpression": ""
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.type }}",
+"rightValue": "communication_request",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.type }}",
+"rightValue": "memory_request",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.type }}",
+"rightValue": "memory_update",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.type }}",
+"rightValue": "human_intervention",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.type }}",
+"rightValue": "handoff",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+}
+]
+},
+"options": {}
+},
+"id": "843f885e-fb11-4712-ba7f-c1f0b09337ef",
+"name": "WF002 Structured Intent Router",
+"type": "n8n-nodes-base.switch",
+"typeVersion": 3,
+"position": [480, 300]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "7bf32d56-6512-4cf0-b8c1-17efd0b6732f",
+"name": "Call Workflow Executor",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [750, 180]
+},
+{
+"parameters": {
+"rules": {
+"values": [
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.workflow }}",
+"rightValue": "lead_qualification",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.workflow }}",
+"rightValue": "research_delivery",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.workflow }}",
+"rightValue": "helpdesk_response",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.workflow }}",
+"rightValue": "marketing_sales",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.workflow }}",
+"rightValue": "health_check",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.body.workflow }}",
+"rightValue": "generic_reasoning",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+}
+]
+},
+"options": {}
+},
+"id": "5f3ae95d-322a-4b6d-a53e-8b0b687b6381",
+"name": "WF003 Workflow Dispatch Router",
+"type": "n8n-nodes-base.switch",
+"typeVersion": 3,
+"position": [920, 180]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "1c7d2c3e-86b3-463d-82fa-ff89658bd75d",
+"name": "Call Comm Router",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [750, 280]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "87bf5d0c-60b6-4dfc-a6b1-096cfd1fbc8e",
+"name": "Call Memory Fetch",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [750, 380]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "90cf851a-7b3e-4f07-ad44-fb88cf5081f2",
+"name": "Call Memory Persist",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [750, 480]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "e36bbef2-d35d-45db-b962-d4f1076bcf64",
+"name": "Call Escalation Router",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [750, 580]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "6d1f7c23-dff2-4c14-bf7f-0d7f758e7e4e",
+"name": "Call Supervisor Handoff Router",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [750, 680]
+},
+{
+"parameters": {
+"method": "POST",
+"url": "https://api.openclaw.internal/v1/invoke",
+"authentication": "genericCredentialType",
+"genericAuthType": "httpHeaderAuth",
+"sendBody": true,
+"specifyBody": "json",
+"jsonBody": "={\n  \"type\": \"{{ $json.body.type || $json.type || 'workflow_request' }}\",\n  \"source\": \"{{ $json.body.source || $json.source || 'n8n' }}\",\n  \"workflow\": \"{{ $json.body.workflow || $json.workflow || 'generic_reasoning' }}\",\n  \"payload\": {{ JSON.stringify($json.body.payload || $json.payload || {}) }},\n  \"supervisor_required\": true,\n  \"execution_boundary\": \"n8n\"\n}",
+"options": {}
+},
+"id": "fa2bb3df-7b10-410a-b302-dfbb65efef8a",
+"name": "UTIL002 core.openclaw.invoke",
+"type": "n8n-nodes-base.httpRequest",
+"typeVersion": 4,
+"position": [1100, 180],
+"credentials": {
+"httpHeaderAuth": {
+"id": "placeholder_openclaw_id",
+"name": "OPENCLAW_HTTP_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"operation": "executeQuery",
+"query": "SELECT * FROM public.working_memory WHERE session_id = :session_id UNION ALL SELECT * FROM public.private_memory WHERE agent_id = :agent_id UNION ALL SELECT * FROM public.shared_memory WHERE active = true UNION ALL SELECT * FROM public.identity_context WHERE identity_id = :identity_id;",
+"options": {
+"placeholderValues": {
+"session_id": "={{ $json.session_id }}",
+"agent_id": "={{ $json.agent_id }}",
+"identity_id": "={{ $json.identity_id }}"
+}
+}
+},
+"id": "ad6472ff-bc42-45bb-b992-8868fbfe09a1",
+"name": "UTIL004 memory.fetch",
+"type": "n8n-nodes-base.postgres",
+"typeVersion": 2,
+"position": [1100, 380],
+"credentials": {
+"postgres": {
+"id": "placeholder_postgres_id",
+"name": "POSTGRES_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"operation": "executeQuery",
+"query": "INSERT INTO public.audit_logs (workflow_id, step_name, status, payload, created_at) VALUES (:workflow_id, :step_name, :status, :payload, NOW());",
+"options": {
+"placeholderValues": {
+"workflow_id": "={{ $workflow.id }}",
+"step_name": "={{ $json.step_name || 'Generic Log' }}",
+"status": "={{ $json.status || 'INFO' }}",
+"payload": "={{ JSON.stringify($json) }}"
+}
+}
+},
+"id": "278bc2df-12bc-452c-bd94-39fbc741e15b",
+"name": "UTIL009 core.audit.logger",
+"type": "n8n-nodes-base.postgres",
+"typeVersion": 2,
+"position": [1400, 380],
+"credentials": {
+"postgres": {
+"id": "placeholder_postgres_id",
+"name": "POSTGRES_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"rules": {
+"values": [
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.channel }}",
+"rightValue": "email",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.channel }}",
+"rightValue": "desktop",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.channel }}",
+"rightValue": "slack",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.channel }}",
+"rightValue": "discord",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+}
+]
+},
+"options": {}
+},
+"id": "e561ffbc-1b2c-47ff-bde1-90a2cfbf40e1",
+"name": "UTIL006 comm.channel.router",
+"type": "n8n-nodes-base.switch",
+"typeVersion": 3,
+"position": [1100, 280]
+},
+{
+"parameters": {
+"fromEmail": "agents@syntrixa.internal",
+"toEmail": "={{ $json.recipient || 'p5@syntrixa.internal' }}",
+"subject": "={{ $json.subject || 'Syntrixa Agent OS Notification' }}",
+"html": "={{ $json.body || 'Empty notification payload.' }}",
+"options": {}
+},
+"id": "764fbbbc-25f1-4df2-a393-27cfbe45da12",
+"name": "WF041 Email Delivery",
+"type": "n8n-nodes-base.email",
+"typeVersion": 1,
+"position": [1400, 180],
+"credentials": {
+"smtp": {
+"id": "placeholder_smtp_id",
+"name": "SMTP_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"select": "channel",
+"channelId": "={{ $json.channel_id || 'C0123456789' }}",
+"text": "={{ $json.body }}",
+"options": {}
+},
+"id": "ab6772df-cdcf-49b2-9df3-18efbc78f7e2",
+"name": "WF044 Slack Discord Delivery",
+"type": "n8n-nodes-base.slack",
+"typeVersion": 2,
+"position": [1400, 280],
+"credentials": {
+"slackApi": {
+"id": "placeholder_slack_id",
+"name": "SLACK_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"operation": "insert",
+"collection": "contact_form_submissions",
+"fieldsValues": {
+"fields": [
+{
+"field": "first_name",
+"value": "={{ $json.body.first_name }}"
+},
+{
+"field": "last_name",
+"value": "={{ $json.body.last_name }}"
+},
+{
+"field": "email",
+"value": "={{ $json.body.email }}"
+},
+{
+"field": "company",
+"value": "={{ $json.body.company }}"
+},
+{
+"field": "requirements",
+"value": "={{ $json.body.requirements }}"
+},
+{
+"field": "timestamp",
+"value": "={{ new Date().toISOString() }}"
+}
+]
+},
+"options": {}
+},
+"id": "672bc1ef-7bf2-48bc-b2ef-fa78f0dcf5ea",
+"name": "WF006 Lead Storage",
+"type": "n8n-nodes-base.mongoDb",
+"typeVersion": 1,
+"position": [480, 750],
+"credentials": {
+"mongoDb": {
+"id": "placeholder_mongo_id",
+"name": "MONGO_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"httpMethod": "POST",
+"path": "web/contact-intake",
+"options": {}
+},
+"id": "df47ccba-92bf-4f11-ae93-fdcb76fbfa21",
+"name": "WF005 Contact Form Intake",
+"type": "n8n-nodes-base.webhook",
+"typeVersion": 1,
+"position": [250, 750],
+"webhookId": "syntrixa-contact-form-intake"
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "31fe7bdf-bcde-42ca-bbef-fa728cbff1ea",
+"name": "WF007 Contact Confirmation Delivery",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [700, 750]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "42ff7bda-deef-47cc-bb32-fd789cbfeea2",
+"name": "WF008 Lead Qualification Trigger",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [920, 750]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "f512efba-45cb-42f2-bd5a-fa789fcae12a",
+"name": "UTIL003 core.context.packager",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [1150, 750]
+},
+{
+"parameters": {
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.routing_intent }}",
+"rightValue": "helpdesk",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+"id": "312baefc-bdcf-45cf-bde1-ffa78efbca12",
+"name": "WF011 Service Question Routing",
+"type": "n8n-nodes-base.if",
+"typeVersion": 2,
+"position": [1380, 750]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "9bc85fde-4b11-4fa2-bd7c-17efd0b673ab",
+"name": "WF012 Research Handoff",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [1650, 720]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "ef12bc5a-67bf-42df-bdca-ffa89fbc78ea",
+"name": "WF018 Helpdesk Intake",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [1650, 820]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "3a945f1f-0df6-4351-8af1-560af950789c",
+"name": "WF021 Helpdesk Identity Context",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [1880, 840]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "184cf6c9-a3a7-4e4c-9d3e-2dc27f16214ff",
+"name": "WF024 Marketing Sales Analysis",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [1880, 1180]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "cd1278ff-ba2e-4b1f-bdba-39fc781fabde",
+"name": "WF014 Public Intelligence Gathering",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [1880, 720]
+},
+{
+"parameters": {
+"operation": "insert",
+"collection": "research_reports",
+"fieldsValues": {
+"fields": [
+{
+"field": "lead_id",
+"value": "={{ $json.lead_id }}"
+},
+{
+"field": "dossier",
+"value": "={{ $json.dossier_data }}"
+},
+{
+"field": "executive_brief",
+"value": "={{ $json.brief_data }}"
+}
+]
+},
+"options": {}
+},
+"id": "ba76bc2f-ef1a-45c2-bde1-78fabcefa123",
+"name": "WF015 Research Report Storage",
+"type": "n8n-nodes-base.mongoDb",
+"typeVersion": 1,
+"position": [2100, 720],
+"credentials": {
+"mongoDb": {
+"id": "placeholder_mongo_id",
+"name": "MONGO_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "45ff12bc-de89-42ff-bd3a-78fecba12ea3",
+"name": "WF017 Research Delivery",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [2320, 720]
+},
+{
+"parameters": {
+"triggerTimes": {
+"item": [
+{
+"mode": "everyMinute"
+}
+]
+},
+"options": {}
+},
+"id": "11bc76fd-de8a-4efb-bc3d-fa89fe781fca",
+"name": "WF030 Scheduled Health Check",
+"type": "n8n-nodes-base.cron",
+"typeVersion": 1,
+"position": [250, 1050]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "ba78eeff-ca21-4def-bdee-fa89feba7c21",
+"name": "UTIL011 infra.monitor.collector",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [480, 1050]
+},
+{
+"parameters": {
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.status }}",
+"rightValue": "CRITICAL",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+"id": "87faefbc-cd2e-4b2c-bde1-90fa7bcde81a",
+"name": "WF031 Workflow Failure Detection",
+"type": "n8n-nodes-base.if",
+"typeVersion": 2,
+"position": [700, 1050]
+},
+{
+"parameters": {
+"fromEmail": "health@syntrixa.internal",
+"toEmail": "support@syntrixa.internal",
+"subject": "CRITICAL ARCHITECTURAL INCIDENT SEC_ALERT",
+"html": "={{\n  \"Critical Structural Fault FoundPayload: \" + \n  JSON.stringify($json) + \"\"\n}}",
+"options": {}
+},
+"id": "ef785abc-cd1e-45fa-bde2-89fcba78ef12",
+"name": "WF038 Critical Security Alert",
+"type": "n8n-nodes-base.email",
+"typeVersion": 1,
+"position": [950, 980],
+"credentials": {
+"smtp": {
+"id": "placeholder_smtp_id",
+"name": "SMTP_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "ab89fa7c-cd2e-4efb-ba7d-39fbc74e12ab",
+"name": "UTIL010 health.standard.recovery",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [950, 1100]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "78faecba-4efc-4bdc-bd3d-90fa7bcda7ea",
+"name": "UTIL012 supervisor.escalation.router",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [1200, 1100]
+},
+{
+"parameters": {
+"rules": {
+"values": [
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.escalation_target }}",
+"rightValue": "P1",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.escalation_target }}",
+"rightValue": "P2",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.escalation_target }}",
+"rightValue": "P3",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+},
+{
+"conditions": {
+"options": {
+"caseSensitive": true,
+"leftValue": "",
+"type": "string"
+},
+"conditions": [
+{
+"leftValue": "={{ $json.escalation_target }}",
+"rightValue": "P5",
+"operator": {
+"type": "string",
+"operation": "equals"
+}
+}
+],
+"combinator": "and"
+}
+}
+]
+},
+"options": {}
+},
+"id": "bc78faeb-ca2e-4b2c-bd3d-89fbca78e12a",
+"name": "WF060 Human Escalation Switch",
+"type": "n8n-nodes-base.switch",
+"typeVersion": 3,
+"position": [1420, 1100]
+},
+{
+"parameters": {
+"triggerMode": "anyNodeError"
+},
+"id": "e56bbdf2-7b10-410a-bde1-fa89fe781fca",
+"name": "UTIL007 core.error.handler",
+"type": "n8n-nodes-base.errorTrigger",
+"typeVersion": 1,
+"position": [250, 1350]
+},
+{
+"parameters": {
+"workflowId": "this",
+"options": {}
+},
+"id": "abef76bc-cd12-4fab-bde3-90fa7bcde8a1",
+"name": "UTIL008 core.retry.manager",
+"type": "n8n-nodes-base.executeWorkflow",
+"typeVersion": 1,
+"position": [480, 1350]
+},
+{
+"parameters": {
+"content": "### Syntrixa Agent OS Architectural Rules\n- All OpenClaw runtime actions enter through `UTIL001` at `/openclaw/intent`; no per-agent HTTP endpoints.\n- OpenClaw is isolated to reasoning via `UTIL002`; n8n owns execution.\n- n8n owns state persistence, messaging, metrics, credentials, retries, and integration mapping.\n- All database modifications are executed via structured internal abstractions."
+},
+"id": "ff1278bc-cdba-45fa-bde1-78fabcefa234",
+"name": "Architecture Note",
+"type": "n8n-nodes-base.note",
+"typeVersion": 1,
+"position": [250, 50]
+},
+{
+"parameters": {
+"operation": "insert",
+"collection": "marketing_campaign_documents",
+"fieldsValues": {
+"fields": [
+{
+"field": "analytics_snapshot",
+"value": "={{ JSON.stringify($json) }}"
+}
+]
+},
+"options": {}
+},
+"id": "92fba7ec-ba2e-4c2d-9df3-18efbc78f56a",
+"name": "WF025 Metrics Storage",
+"type": "n8n-nodes-base.mongoDb",
+"typeVersion": 1,
+"position": [700, 1350],
+"credentials": {
+"mongoDb": {
+"id": "placeholder_mongo_id",
+"name": "MONGO_PLACEHOLDER"
+}
+}
+},
+{
+"parameters": {
+"operation": "executeQuery",
+"query": "INSERT INTO public.workflow_state (workflow_id, state_key, payload, updated_at) VALUES (:workflow_id, :state_key, :payload, NOW());",
+"options": {
+"placeholderValues": {
+"workflow_id": "={{ $workflow.id }}",
+"state_key": "={{ $json.state_key || 'ACTIVE_WF' }}",
+"payload": "={{ JSON.stringify($json) }}"
+}
+}
+},
+"id": "a90ffebd-12ab-47bc-ad3e-fb897cbfa212",
+"name": "UTIL005 memory.persist",
+"type": "n8n-nodes-base.postgres",
+"typeVersion": 2,
+"position": [1100, 480],
+"credentials": {
+"postgres": {
+"id": "placeholder_postgres_id",
+"name": "POSTGRES_PLACEHOLDER"
+}
+}
+}
+],
+"connections": {
+"UTIL001 core.intent.gateway": {
+"main": [
+[
+{
+"node": "WF002 Structured Intent Router",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF002 Structured Intent Router": {
+"main": [
+[
+{
+"node": "Call Workflow Executor",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "Call Comm Router",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "Call Memory Fetch",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "Call Memory Persist",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "Call Escalation Router",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "Call Supervisor Handoff Router",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"Call Workflow Executor": {
+"main": [
+[
+{
+"node": "WF003 Workflow Dispatch Router",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF003 Workflow Dispatch Router": {
+"main": [
+[
+{
+"node": "WF008 Lead Qualification Trigger",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "WF012 Research Handoff",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "WF021 Helpdesk Identity Context",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "WF024 Marketing Sales Analysis",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "UTIL011 infra.monitor.collector",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"Call Supervisor Handoff Router": {
+"main": [
+[
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"Call Comm Router": {
+"main": [
+[
+{
+"node": "UTIL006 comm.channel.router",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"Call Memory Fetch": {
+"main": [
+[
+{
+"node": "UTIL004 memory.fetch",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"Call Memory Persist": {
+"main": [
+[
+{
+"node": "UTIL005 memory.persist",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"Call Escalation Router": {
+"main": [
+[
+{
+"node": "UTIL012 supervisor.escalation.router",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL004 memory.fetch": {
+"main": [
+[
+{
+"node": "UTIL009 core.audit.logger",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL002 core.openclaw.invoke": {
+"main": [
+[
+{
+"node": "UTIL009 core.audit.logger",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL006 comm.channel.router": {
+"main": [
+[
+{
+"node": "WF041 Email Delivery",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "WF044 Slack Discord Delivery",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF005 Contact Form Intake": {
+"main": [
+[
+{
+"node": "WF006 Lead Storage",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF006 Lead Storage": {
+"main": [
+[
+{
+"node": "WF007 Contact Confirmation Delivery",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF007 Contact Confirmation Delivery": {
+"main": [
+[
+{
+"node": "WF008 Lead Qualification Trigger",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF008 Lead Qualification Trigger": {
+"main": [
+[
+{
+"node": "UTIL003 core.context.packager",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL003 core.context.packager": {
+"main": [
+[
+{
+"node": "WF011 Service Question Routing",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF011 Service Question Routing": {
+"main": [
+[
+{
+"node": "WF012 Research Handoff",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "WF018 Helpdesk Intake",
+"type": "main",
+"index": 1
+}
+]
+]
+},
+"WF018 Helpdesk Intake": {
+"main": [
+[
+{
+"node": "WF021 Helpdesk Identity Context",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF021 Helpdesk Identity Context": {
+"main": [
+[
+{
+"node": "UTIL004 memory.fetch",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF012 Research Handoff": {
+"main": [
+[
+{
+"node": "WF014 Public Intelligence Gathering",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF014 Public Intelligence Gathering": {
+"main": [
+[
+{
+"node": "WF015 Research Report Storage",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF015 Research Report Storage": {
+"main": [
+[
+{
+"node": "WF017 Research Delivery",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF017 Research Delivery": {
+"main": [
+[
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF024 Marketing Sales Analysis": {
+"main": [
+[
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF030 Scheduled Health Check": {
+"main": [
+[
+{
+"node": "UTIL011 infra.monitor.collector",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL011 infra.monitor.collector": {
+"main": [
+[
+{
+"node": "WF031 Workflow Failure Detection",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"WF031 Workflow Failure Detection": {
+"main": [
+[
+{
+"node": "WF038 Critical Security Alert",
+"type": "main",
+"index": 0
+}
+],
+[
+{
+"node": "UTIL010 health.standard.recovery",
+"type": "main",
+"index": 1
+}
+]
+]
+},
+"UTIL010 health.standard.recovery": {
+"main": [
+[
+{
+"node": "UTIL012 supervisor.escalation.router",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL012 supervisor.escalation.router": {
+"main": [
+[
+{
+"node": "WF060 Human Escalation Switch",
+"type": "main",
+"index": 0
+},
+{
+"node": "UTIL002 core.openclaw.invoke",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL007 core.error.handler": {
+"main": [
+[
+{
+"node": "UTIL008 core.retry.manager",
+"type": "main",
+"index": 0
+}
+]
+]
+},
+"UTIL008 core.retry.manager": {
+"main": [
+[
+{
+"node": "WF025 Metrics Storage",
+"type": "main",
+"index": 0
+}
+]
+]
+}
+},
+"settings": {
+"executionTimeout": 300
+},
+"meta": {
+"instanceId": "syntrixa-production-agent-os-cluster-01"
+},
+"tags": [
+{
+"name": "Syntrixa-Agent-OS",
+"id": "tag-syntrixa-os-001"
+},
+{
+"name": "Near-Production",
+"id": "tag-syntrixa-os-002"
+}
+]
+}

@@ -1,0 +1,47 @@
+FROM node:24-bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NEMOCLAW_GATEWAY_BIND_ADDRESS=0.0.0.0
+ENV NEMOCLAW_GATEWAY_PORT=8990
+ENV NEMOCLAW_DASHBOARD_BIND=0.0.0.0
+ENV NEMOCLAW_DASHBOARD_PORT=18789
+ENV NEMOCLAW_POLICY_TIER=restricted
+ENV NEMOCLAW_SANDBOX_NAME=syntrixa-openclaw
+ENV NEMOCLAW_SANDBOX_GPU=0
+ENV NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE=1
+ENV NEMOCLAW_YES=1
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    bash \
+    binutils \
+    ca-certificates \
+    curl \
+    docker.io \
+    fuse-overlayfs \
+    git \
+    iproute2 \
+    iptables \
+    lsof \
+    openssh-client \
+    procps \
+    zstd \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN git init --quiet /opt/nemoclaw \
+  && git -C /opt/nemoclaw remote add origin https://github.com/NVIDIA/NemoClaw.git \
+  && git -C /opt/nemoclaw fetch --quiet --depth 1 origin latest \
+  && git -C /opt/nemoclaw -c advice.detachedHead=false checkout --quiet --detach FETCH_HEAD \
+  && sed -i 's/run_onboard() {/run_onboard() { warn "Skipping onboarding during Docker image build."; return 0;/' /opt/nemoclaw/scripts/install.sh \
+  && NEMOCLAW_REPO_ROOT=/opt/nemoclaw NEMOCLAW_NON_INTERACTIVE=1 NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE=1 bash /opt/nemoclaw/scripts/install.sh
+
+WORKDIR /workspace/openclaw-workspace
+
+COPY docker-entrypoint.nemoclaw.sh /usr/local/bin/docker-entrypoint.nemoclaw.sh
+COPY mock-inference-server.mjs /usr/local/bin/mock-inference-server.mjs
+RUN chmod +x /usr/local/bin/docker-entrypoint.nemoclaw.sh
+
+EXPOSE 18789 8990 8000 11434 11435
+
+ENTRYPOINT ["docker-entrypoint.nemoclaw.sh"]
+CMD ["sleep", "infinity"]

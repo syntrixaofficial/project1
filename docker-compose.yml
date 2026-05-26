@@ -1,36 +1,53 @@
 services:
-  openclaw:
+  nemoclaw:
     build:
       context: .
-      dockerfile: Dockerfile.openclaw
-    container_name: syntrixa-openclaw
-    hostname: openclaw
+      dockerfile: Dockerfile.nemoclaw
+    container_name: syntrixa-nemoclaw
+    hostname: nemoclaw
+    privileged: true
     env_file:
       - .env
     working_dir: /workspace/openclaw-workspace
     volumes:
       - ./openclaw-workspace:/workspace/openclaw-workspace
-      - openclaw-state:/home/openclaw/.openclaw
+      - nemoclaw-home:/root
+      - nemoclaw-docker:/var/lib/docker
     ports:
-      - "18789:18789"
+      - "127.0.0.1:18789:18789"
+      - "127.0.0.1:8990:8990"
     expose:
       - "18789"
+      - "8990"
+      - "8000"
+      - "11434"
+      - "11435"
     environment:
-      OPENCLAW_STATE_DIR: /home/openclaw/.openclaw
-      OPENCLAW_GATEWAY_HOST: 0.0.0.0
-      OPENCLAW_GATEWAY_PORT: 18789
+      NEMOCLAW_GATEWAY_BIND_ADDRESS: 0.0.0.0
+      NEMOCLAW_GATEWAY_PORT: 8990
+      NEMOCLAW_DASHBOARD_BIND: 0.0.0.0
+      NEMOCLAW_DASHBOARD_PORT: 18789
+      NEMOCLAW_POLICY_TIER: restricted
+      NEMOCLAW_SANDBOX_NAME: syntrixa-openclaw
+      NEMOCLAW_SANDBOX_GPU: "0"
+      NEMOCLAW_PROVIDER: custom
+      NEMOCLAW_ENDPOINT_URL: http://127.0.0.1:8000/v1
+      NEMOCLAW_MODEL: syntrixa-security-stub
+      COMPATIBLE_API_KEY: dummy
+      NEMOCLAW_PREFERRED_API: openai-completions
+      NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE: "1"
+      NEMOCLAW_YES: "1"
       N8N_BASE_URL: http://n8n:5678
-      N8N_OPENCLAW_WEBHOOK_PATH: /webhook/openclaw
-      OPENCLAW_NO_RESPAWN: "1"
-      NODE_COMPILE_CACHE: /var/tmp/openclaw-compile-cache
+      N8N_OPENCLAW_WEBHOOK_PATH: /webhook/openclaw/intent
     networks:
       syntrixa:
         aliases:
-          - openclaw
+          - nemoclaw
 
 networks:
   syntrixa:
     name: syntrixa
 
 volumes:
-  openclaw-state:
+  nemoclaw-home:
+  nemoclaw-docker:
