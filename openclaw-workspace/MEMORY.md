@@ -1,188 +1,61 @@
-# Syntrixa Memory And Context Contract
+# Syntrixa Memory and Context Contract
 
-Purpose: define how OpenClaw reasons over memory, identity, workflow state, and knowledge without directly accessing any store.
+OpenClaw does not directly retrieve, persist, index, query, or mutate memory, identity, workflow state, or knowledge.
 
-Prime rule:
-
-OpenClaw does not retrieve, persist, index, query, or mutate memory directly.
-
-n8n owns memory workflows, storage workflows, identity retrieval, knowledge retrieval, workflow persistence, and context packaging.
+n8n owns memory workflows, identity retrieval, knowledge retrieval, workflow/lifecycle persistence, context packaging, and storage selection.
 
 ## Runtime Model
 
-```text
-n8n gathers external context
--> n8n packages context
--> n8n invokes OpenClaw or a specific agent
--> OpenClaw reasons over supplied context
--> OpenClaw emits structured request candidates
--> n8n executes, stores, delivers, monitors, or re-triggers OpenClaw
-```
+n8n gathers context -> packages it -> invokes OpenClaw -> OpenClaw reasons -> returns requests -> n8n retrieves/stores/delivers/re-triggers
 
 ## Not Allowed
 
-```text
-OpenClaw -> database
-OpenClaw -> Redis
-OpenClaw -> Vector DB
-OpenClaw -> knowledge store
-OpenClaw -> identity store
-OpenClaw -> analytics provider
-OpenClaw -> monitoring system
-OpenClaw -> Docker/VPS/infrastructure
-OpenClaw -> external API
-```
+OpenClaw may not access:
 
-## Allowed Memory Flow
-
-Context retrieval:
-
-```text
-OpenClaw context_request -> n8n Intent Gateway -> n8n memory/knowledge/identity workflow -> n8n packages context -> OpenClaw re-trigger
-```
-
-Memory update:
-
-```text
-OpenClaw memory_update request -> n8n Intent Gateway -> n8n memory persist workflow -> storage
-```
-
-OpenClaw can request, recommend, classify, summarize, validate, and decide. n8n retrieves and stores.
-
-## Supported Context Scopes
-
-n8n may package these scopes for OpenClaw:
-
-- working memory
-- long memory
-- private memory
-- shared memory
-- identity context
+- Postgres, MongoDB, Redis
+- identity stores
+- knowledge stores
 - workflow state
-- lifecycle state
-- knowledge context
-- audit/trace context
+- analytics or monitoring systems
+- Docker/VPS/infrastructure
+- external APIs
 
-OpenClaw consumes these scopes only as supplied context in the invocation payload.
+## Storage Roles
 
-## Storage Ownership
+- MongoDB: flexible contact/blog/operational documents
+- Postgres: structured agent state, memory, lifecycle, handoffs, audit, identity, knowledge indexing
+- Redis: short-lived runtime/session/cache state
 
-Storage is outside OpenClaw.
+OpenClaw works only with packaged context or request candidates.
 
-- Postgres: durable relational memory, identity records, workflow persistence, handoff state, audit records.
-- Redis: short-lived workflow/session state, locks, transient coordination.
-- Vector DB: sanitized semantic retrieval and knowledge references.
-- Knowledge stores: service, FAQ, process, and operational knowledge.
+## Context Package
 
-All access to these stores occurs through n8n workflows or infrastructure services, never through OpenClaw agents.
+n8n sends packaged context per `schemas/context-package.schema.json`.
 
-## Packaged Context Requirements
+OpenClaw treats it as input only.
 
-n8n should provide minimal packaged context:
+## Context Request
 
-```json
-{
-  "context_package": {
-    "package_id": "<uuid>",
-    "source_workflow": "<n8n_workflow_name>",
-    "subject_refs": {
-      "lead_id": null,
-      "account_id": null,
-      "contact_id": null,
-      "workflow_id": null,
-      "trace_id": null
-    },
-    "scopes": ["working", "identity", "shared"],
-    "facts": [],
-    "prior_interactions": [],
-    "workflow_state": {},
-    "knowledge_context": [],
-    "constraints": {
-      "minimal_context": true,
-      "no_raw_secrets": true
-    }
-  }
-}
-```
+If required context is missing, OpenClaw emits a `context_request` per `schemas/request-candidate.schema.json`.
 
-OpenClaw treats packaged context as input, not as storage access.
+It must state purpose, required scopes, and constraints (`minimal_context`, `no_raw_secrets`).
 
-## Context Request Shape
+## Memory Update
 
-When context is missing, OpenClaw emits a request candidate:
+If memory should be stored, OpenClaw emits `memory_update` with scope, content, reason, confidence, and retention_hint.
 
-```json
-{
-  "id": "<uuid>",
-  "type": "context_request",
-  "category": "memory|identity|knowledge|workflow_state|lifecycle_state",
-  "priority": "low|normal|high|urgent",
-  "requester": {
-    "id": "<agent-id>",
-    "role": "agent|supervisor"
-  },
-  "subject_refs": {},
-  "purpose": "<why_context_is_needed>",
-  "required_scopes": [],
-  "constraints": {
-    "minimal_context": true,
-    "no_raw_secrets": true
-  },
-  "timestamp": "<ISO8601>",
-  "version": "1.0"
-}
-```
+n8n validates, stores, isolates, indexes, and retrieves later.
 
-This goes to the n8n Intent Gateway. n8n decides how to retrieve, package, persist audit, and re-trigger OpenClaw.
+## Private Memory
 
-## Memory Update Shape
+OpenClaw may designate ownership, but n8n enforces isolation.
 
-When memory should be saved, OpenClaw emits:
+## Do Not Store
 
-```json
-{
-  "id": "<uuid>",
-  "type": "memory_update",
-  "scope": "working|long|private|shared|identity|audit|knowledge",
-  "priority": "low|normal|high|urgent",
-  "requester": {
-    "id": "<agent-id>",
-    "role": "agent|supervisor"
-  },
-  "subject_refs": {},
-  "content": "<sanitized_summary_or_reference>",
-  "reason": "<why_this_should_be_saved>",
-  "confidence": "low|medium|high",
-  "retention_hint": "ephemeral|session|durable",
-  "timestamp": "<ISO8601>",
-  "version": "1.0"
-}
-```
-
-n8n owns validation beyond the OpenClaw recommendation, persistence, lifecycle updates, and storage selection.
-
-## Private Memory Rule
-
-Private memory is private by policy, not by OpenClaw storage access.
-
-OpenClaw may label memory as private for an agent using `requester.id` or `owner_agent_id`. n8n enforces storage isolation and retrieval permissions.
-
-## Do Not Store Or Request
-
-- raw secrets
-- API keys
-- passwords
-- tokens
-- credentials
+- raw secrets, API keys, passwords, tokens, credentials
 - raw sensitive logs
-- raw external payloads unless explicitly approved and sanitized by n8n
-- unsupported speculation as fact
-- direct execution commands intended to bypass n8n
+- raw payloads without approval
+- unsupported speculation
+- direct execution commands
 
-Secrets must remain in `.env`, secret manager, or environment-backed secret references.
-
-## Supervisor Responsibility
-
-`syntra` decides whether a context or memory request is reasonable, minimal, and safe before returning it as an n8n request candidate.
-
-`syntra` does not retrieve or store the memory itself.
+Secrets must stay in `.env`, secret manager, or environment-backed references.

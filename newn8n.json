@@ -1,0 +1,3416 @@
+{
+  "name": "Syntrixa OpenClaw P2 n8n Workflow Architecture",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### Syntrixa OpenClaw P2 n8n Architecture\n- OpenClaw has ZERO external access.\n- n8n is the only external execution layer.\n- OpenClaw returns structured request candidates only.\n- n8n owns DB, memory, identity, communication, analytics, health checks, credentials, retries, audit, and infra.\n- This workflow intentionally reuses shared utility nodes instead of duplicating logic across all P2 workflows.",
+        "height": 300,
+        "width": 700,
+        "color": 5
+      },
+      "id": "96e31b62-7b33-b62a-3bc4-005cf2e1bcc1",
+      "name": "Architecture Boundary Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "openclaw/intent",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "1c420c01-c4bf-3d3c-a363-6c9399c284fa",
+      "name": "WF001 OpenClaw Intent Gateway Workflow",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        120,
+        40
+      ],
+      "webhookId": "syntrixa-openclaw-intent-gateway-p2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const body = item.json.body || item.json;\n  return { json: {\n    ...body,\n    body,\n    id: body.id || $execution.id,\n    type: body.type || 'workflow_request',\n    category: body.category || body.workflow_category || 'contact',\n    priority: body.priority || 'normal',\n    requester: body.requester || 'openclaw',\n    timestamp: body.timestamp || new Date().toISOString(),\n    version: body.version || '1.0',\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }};\n});"
+      },
+      "id": "f0230771-eb9f-965d-5bbb-e4937327dcf2",
+      "name": "UTIL001 Normalize Gateway Envelope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allowedTypes = ['workflow_request','communication_request','context_request','memory_update','handoff','human_intervention'];\nconst allowedCategories = ['contact','lead','research','helpdesk','marketing','health','communication','memory','escalation','infrastructure'];\nreturn items.map((item) => {\n  const j = item.json;\n  const valid = allowedTypes.includes(j.type) && allowedCategories.includes(j.category) && j.version === '1.0';\n  return { json: { ...j, candidate_valid: valid, validation_errors: valid ? [] : ['request candidate does not match OpenClaw->n8n P2 contract'] } };\n});"
+      },
+      "id": "27422505-01fe-fd0a-f0eb-d56b11fd6041",
+      "name": "UTIL002 Validate Request Candidate Shape",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "workflow_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "communication_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "context_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "memory_update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "handoff",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "human_intervention",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "4fac7268-4316-519f-cbac-1c0c0278b79f",
+      "name": "WF002 Structured Intent Router Workflow",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        860,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "contact",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "research",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "helpdesk",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "marketing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "health",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "communication",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "memory",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "escalation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "infrastructure",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "c00925bc-7796-93af-e525-9a2c1c2ad9bd",
+      "name": "UTIL003 Category / Workflow Dispatch Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENCLAW_AGENT_INVOKE_URL || \"http://nemoclaw:8990/openclaw/agent/invoke\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ context_package: $json.context_package || $json, boundary: { openclaw_external_access: false, n8n_owns_execution: true }, requested_agent: $json.target_agent || $json.agent || \"syntra-supervisor\" }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "9615cdfc-79e3-acb7-c8c8-2caa621d2e5b",
+      "name": "WF003 Agent Trigger Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        3740,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const response = item.json;\n  return { json: { ...response, handled_by: 'n8n', response_received_at: new Date().toISOString(), next_request_type: response.type || response.request_candidate?.type || 'communication_request' } };\n});"
+      },
+      "id": "80ff82cd-66b2-3899-a61f-1e3fe7599d41",
+      "name": "WF004 Agent Response Handler Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => ({ json: {\n  ...item.json,\n  context_package: {\n    package_id: item.json.id || $execution.id,\n    source_workflow: item.json.current_workflow || $workflow.name,\n    subject_refs: item.json.subject_refs || {},\n    scopes: item.json.required_scopes || item.json.scopes || [item.json.workflow_category || item.json.category || 'workflow_state'],\n    facts: item.json.facts || [],\n    lead: item.json.lead || item.json.contact || undefined,\n    contact: item.json.contact || item.json.payload?.contact || undefined,\n    account: item.json.account || item.json.payload?.account || undefined,\n    identity_context: item.json.identity_context || undefined,\n    public_intelligence: item.json.public_intelligence || [],\n    analytics_context: item.json.analytics_context || undefined,\n    crm_context: item.json.crm_context || undefined,\n    monitoring_context: item.json.monitoring_context || item.json.failure_context || undefined,\n    workflow_state: item.json.workflow_state || {},\n    lifecycle_state: item.json.lifecycle_state || {},\n    knowledge_context: item.json.knowledge_context || [],\n    constraints: { minimal_context: true, no_raw_secrets: true, retention: item.json.retention_hint || 'session' }\n  }\n}}));"
+      },
+      "id": "cc0a9f2c-6900-88eb-a163-53d9d3ef6286",
+      "name": "UTIL010 Reusable Context Package Builder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3260,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.audit_logs (request_id, workflow_name, category, requester, status, payload, created_at) VALUES (:request_id, :workflow_name, :category, :requester, :status, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "4f04f7fa-3d1b-f782-8677-a78dfeaf2c04",
+      "name": "UTIL011 Reusable Audit Trail Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        4300,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_request_type || $json.type }}",
+                    "rightValue": "workflow_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_request_type || $json.type }}",
+                    "rightValue": "communication_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_request_type || $json.type }}",
+                    "rightValue": "context_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_request_type || $json.type }}",
+                    "rightValue": "memory_update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_request_type || $json.type }}",
+                    "rightValue": "handoff",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_request_type || $json.type }}",
+                    "rightValue": "human_intervention",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "c9e4674c-140c-39a2-7bf4-9698c42c8bc0",
+      "name": "UTIL012 Agent Candidate Output Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        4240,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contact/intake",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "eed4d205-428d-e55b-f163-dd4e4b0154ee",
+      "name": "WF005 Contact Form Intake Workflow",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        120,
+        -380
+      ],
+      "webhookId": "syntrixa-contact-intake-p2"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "contact_form_submissions",
+        "fieldsValues": {
+          "fields": [
+            {
+              "field": "workflow_name",
+              "value": "={{ $json.current_workflow || 'WF006 Lead Storage Workflow' }}"
+            },
+            {
+              "field": "category",
+              "value": "={{ $json.workflow_category || $json.category }}"
+            },
+            {
+              "field": "payload",
+              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
+            },
+            {
+              "field": "created_at",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1b8e3efd-a467-890d-dda4-03ceb03605b1",
+      "name": "WF006 Lead Storage Workflow",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        -380
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "placeholder_mongo_id",
+          "name": "MONGO_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Contact Confirmation Delivery Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF007 Contact Confirmation Delivery Workflow\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Prepare confirmation through reusable communication layer.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "096ec79a-0c64-b616-834c-f94554415e89",
+      "name": "WF007 Contact Confirmation Delivery Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lead Qualification Trigger Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF008 Lead Qualification Trigger Workflow\",\n    workflow_category: \"lead\",\n    workflow_step_detail: \"Build lead context and request lead-qualification-agent reasoning.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "d935c369-be0d-0f7d-2cc5-948c8af136c7",
+      "name": "WF008 Lead Qualification Trigger Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.workflow_state WHERE request_id = :request_id; -- plus identity/consent/lead context views owned by n8n",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "4177895a-31ce-044e-7774-81e4e84fe820",
+      "name": "WF009 Lead Qualification Context Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        -380
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Qualification Conversation Delivery Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF010 Qualification Conversation Delivery Workflow\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Deliver lead qualification questions via selected channel.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "0d7a14a1-832a-0c90-6fad-1bfbee93f9de",
+      "name": "WF010 Qualification Conversation Delivery Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routing_intent || $json.payload?.routing_intent || $json.category }}",
+                    "rightValue": "helpdesk",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routing_intent || $json.payload?.routing_intent || $json.category }}",
+                    "rightValue": "research",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routing_intent || $json.payload?.routing_intent || $json.category }}",
+                    "rightValue": "lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "64d8e54f-c02d-51ec-68b9-da99e69774fe",
+      "name": "WF011 Service Question Routing Workflow",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        2700,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Research Handoff Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF012 Research Handoff Workflow\",\n    workflow_category: \"research\",\n    workflow_step_detail: \"Persist handoff and trigger research context path.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "90b2cd09-dd5a-2272-a689-5f144d334b17",
+      "name": "WF012 Research Handoff Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        -460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Research Context Assembly Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF013 Research Context Assembly Workflow\",\n    workflow_category: \"research\",\n    workflow_step_detail: \"Assemble public intelligence, account, lead, and prior interaction context.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "5a0b8a74-0815-4061-c0e0-ab9a2b6f2760",
+      "name": "WF013 Research Context Assembly Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PUBLIC_INTEL_PROXY_URL || \"http://n8n:5678/webhook/internal/public-intelligence\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $json.id, account: $json.account || $json.payload?.account, constraints: { no_raw_secrets: true, minimal_context: true } }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "06ef5d1f-abbe-3bf3-cf9d-d18a3390c7fb",
+      "name": "WF014 Public Intelligence Gathering Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1660,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "research_reports",
+        "fieldsValues": {
+          "fields": [
+            {
+              "field": "workflow_name",
+              "value": "={{ $json.current_workflow || 'WF015 Research Report Storage Workflow' }}"
+            },
+            {
+              "field": "category",
+              "value": "={{ $json.workflow_category || $json.category }}"
+            },
+            {
+              "field": "payload",
+              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
+            },
+            {
+              "field": "created_at",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5c1e47db-faef-028b-d17a-43851b83885f",
+      "name": "WF015 Research Report Storage Workflow",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        -160
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "placeholder_mongo_id",
+          "name": "MONGO_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Executive Brief Generation Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF016 Executive Brief Generation Workflow\",\n    workflow_category: \"research\",\n    workflow_step_detail: \"Ask OpenClaw for executive brief reasoning over n8n-packaged research context.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "3541f165-0c7c-c243-5cf7-e386e32fb266",
+      "name": "WF016 Executive Brief Generation Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Research Delivery Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF017 Research Delivery Workflow\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Deliver sanitized executive brief through communication layer.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "033a6116-988a-a10c-04b2-3d2e4d2712f8",
+      "name": "WF017 Research Delivery Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helpdesk Question Intake Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF018 Helpdesk Question Intake Workflow\",\n    workflow_category: \"helpdesk\",\n    workflow_step_detail: \"Normalize support/service question.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "04205398-5c13-4296-8d44-42364ccb0433",
+      "name": "WF018 Helpdesk Question Intake Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.identity_context WHERE request_id = :request_id; -- n8n owned identity lookup",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "2b62547b-6209-c099-6317-8d212a2532ae",
+      "name": "WF019 Identity Context Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        60
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.workflow_state WHERE request_id = :request_id; -- prior conversation context",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "3f6a6baa-7621-cec4-c30e-d8f1211fb9b0",
+      "name": "WF020 Conversation Context Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        60
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.knowledge_index WHERE category = :category LIMIT 20;",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "971709d4-76ca-d40c-3c73-86440941c339",
+      "name": "WF021 Knowledge Base Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        60
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helpdesk Response Delivery Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF022 Helpdesk Response Delivery Workflow\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Deliver answer or clarification through communication layer.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "9a41d1be-ee53-d887-d1d9-4d553beb1339",
+      "name": "WF022 Helpdesk Response Delivery Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MARKETING_ANALYTICS_PROXY_URL || \"http://n8n:5678/webhook/internal/marketing-analytics\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $json.id, constraints: { no_raw_secrets: true } }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "71878d6f-3ef5-51d1-15e8-8698f9ccf945",
+      "name": "WF023 Marketing Analytics Collection Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1400,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Campaign Data Aggregation Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF024 Campaign Data Aggregation Workflow\",\n    workflow_category: \"marketing\",\n    workflow_step_detail: \"Normalize analytics, CRM, campaign, and sales signal packages.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "8ee929b0-7341-8af7-5b77-5a666a5ff793",
+      "name": "WF024 Campaign Data Aggregation Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "marketing_performance_metrics",
+        "fieldsValues": {
+          "fields": [
+            {
+              "field": "workflow_name",
+              "value": "={{ $json.current_workflow || 'WF025 Performance Metrics Storage Workflow' }}"
+            },
+            {
+              "field": "category",
+              "value": "={{ $json.workflow_category || $json.category }}"
+            },
+            {
+              "field": "payload",
+              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
+            },
+            {
+              "field": "created_at",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2cbff98c-a96b-51b7-995d-92f40da1f938",
+      "name": "WF025 Performance Metrics Storage Workflow",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        320
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "placeholder_mongo_id",
+          "name": "MONGO_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Marketing Intelligence Trigger Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF026 Marketing Intelligence Trigger Workflow\",\n    workflow_category: \"marketing\",\n    workflow_step_detail: \"Trigger marketing-sales-agent reasoning.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "d7d9b563-141f-19e9-2635-31e53cdc6579",
+      "name": "WF026 Marketing Intelligence Trigger Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Campaign Proposal Execution Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF027 Campaign Proposal Execution Workflow\",\n    workflow_category: \"marketing\",\n    workflow_step_detail: \"Stage campaign proposal only after approval; n8n executes approved changes.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "59c07a81-efcc-8617-5f9b-d3df76ce9478",
+      "name": "WF027 Campaign Proposal Execution Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "sales_signals",
+        "fieldsValues": {
+          "fields": [
+            {
+              "field": "workflow_name",
+              "value": "={{ $json.current_workflow || 'WF028 Sales Signal Tracking Workflow' }}"
+            },
+            {
+              "field": "category",
+              "value": "={{ $json.workflow_category || $json.category }}"
+            },
+            {
+              "field": "payload",
+              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
+            },
+            {
+              "field": "created_at",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3b6e04f9-82e5-3bb8-7842-80dabda064db",
+      "name": "WF028 Sales Signal Tracking Workflow",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        320
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "placeholder_mongo_id",
+          "name": "MONGO_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Supervisor Approval Workflow (marketing changes)\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF029 Supervisor Approval Workflow (marketing changes)\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Human/supervisor approval gate for campaign mutation.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "2172ad14-e55f-c21d-64cc-0591e25327d9",
+      "name": "WF029 Supervisor Approval Workflow (marketing changes)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "90035a9c-ea4f-6705-91e1-5078ef7973b8",
+      "name": "WF030 Scheduled Health Check Workflow",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        120,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Workflow Failure Detection Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF031 Workflow Failure Detection Workflow\",\n    workflow_category: \"health\",\n    workflow_step_detail: \"Classify n8n workflow failures and execution errors.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "72942fd7-4302-bcbf-3073-8999a7c1e693",
+      "name": "WF031 Workflow Failure Detection Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_HEALTH_URL || \"http://n8n:5678/healthz\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ check: \"api\", request_id: $json.id || $execution.id }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "fbfa9a23-6060-0786-6635-1b33ec0017cd",
+      "name": "WF032 API Health Monitoring Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        640,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.INFRA_MONITORING_PROXY_URL || \"http://n8n:5678/webhook/internal/infra-health\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ check: \"infra\", constraints: { no_raw_secrets: true } }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "7552de50-f3f7-2723-0ec6-5e107770386c",
+      "name": "WF033 Infrastructure Monitoring Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        900,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Diagnostic Context Collection Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF034 Diagnostic Context Collection Workflow\",\n    workflow_category: \"health\",\n    workflow_step_detail: \"Collect sanitized trace refs, retry count, workflow state, and monitoring context.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "ac74bef2-5b7b-cd86-48ac-87db205b530a",
+      "name": "WF034 Diagnostic Context Collection Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Automated Recovery Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF035 Automated Recovery Workflow\",\n    workflow_category: \"health\",\n    workflow_step_detail: \"Execute only reversible approved recovery actions.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "6d4c7929-d532-7813-1c1d-da44d2663f7c",
+      "name": "WF035 Automated Recovery Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Retry / Corrective Action Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF036 Retry / Corrective Action Workflow\",\n    workflow_category: \"health\",\n    workflow_step_detail: \"Apply bounded n8n retry policy and log action.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "e7d92536-8b15-1ccd-ea37-85020f47b9d7",
+      "name": "WF036 Retry / Corrective Action Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Incident Escalation Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF037 Incident Escalation Workflow\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Escalate incident based on severity and confidence.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "09ef84a1-8042-065c-fab6-55fc7c71b72e",
+      "name": "WF037 Incident Escalation Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SYNTRIXA_FROM_EMAIL || \"agents@syntrixa.internal\" }}",
+        "toEmail": "={{ $json.recipient || $json.payload?.recipient_ref || \"ops@syntrixa.internal\" }}",
+        "subject": "={{ $json.subject || $json.payload?.subject || \"Syntrixa OpenClaw Notification\" }}",
+        "html": "={{ $json.body || $json.payload?.body || JSON.stringify($json.payload || $json) }}",
+        "options": {}
+      },
+      "id": "be8e954b-d183-ba7b-f833-77fa7bad8ae9",
+      "name": "WF038 Critical Security Alert Workflow",
+      "type": "n8n-nodes-base.email",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        620
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "placeholder_smtp_id",
+          "name": "SMTP_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Communication Request Intake Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF039 Communication Request Intake Workflow\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Normalize abstract communication request from OpenClaw.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "13b4221e-d5d6-c2f2-ac55-9a4d4fba8722",
+      "name": "WF039 Communication Request Intake Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_hint || $json.payload?.channel_hint || $json.channel || \"email\" }}",
+                    "rightValue": "email",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_hint || $json.payload?.channel_hint || $json.channel || \"email\" }}",
+                    "rightValue": "desktop",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_hint || $json.payload?.channel_hint || $json.channel || \"email\" }}",
+                    "rightValue": "dashboard",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_hint || $json.payload?.channel_hint || $json.channel || \"email\" }}",
+                    "rightValue": "slack",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_hint || $json.payload?.channel_hint || $json.channel || \"email\" }}",
+                    "rightValue": "discord",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_hint || $json.payload?.channel_hint || $json.channel || \"email\" }}",
+                    "rightValue": "sms",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel_hint || $json.payload?.channel_hint || $json.channel || \"email\" }}",
+                    "rightValue": "ticketing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "63620ab1-71ca-9f97-98c6-5e250e6e9281",
+      "name": "WF040 Channel Selection Workflow",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1660,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SYNTRIXA_FROM_EMAIL || \"agents@syntrixa.internal\" }}",
+        "toEmail": "={{ $json.recipient || $json.payload?.recipient_ref || \"ops@syntrixa.internal\" }}",
+        "subject": "={{ $json.subject || $json.payload?.subject || \"Syntrixa OpenClaw Notification\" }}",
+        "html": "={{ $json.body || $json.payload?.body || JSON.stringify($json.payload || $json) }}",
+        "options": {}
+      },
+      "id": "2111ee11-5e62-241a-7892-1b8db14c9d82",
+      "name": "WF041 Email Delivery Workflow",
+      "type": "n8n-nodes-base.email",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        760
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "placeholder_smtp_id",
+          "name": "SMTP_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Desktop Notification Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF042 Desktop Notification Workflow\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Send local/operator desktop notification through n8n-owned notifier.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "2079230d-a6fb-b6ad-17ee-8d4d3c6b64fc",
+      "name": "WF042 Desktop Notification Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        860
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dashboard Notification Workflow (future)\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF043 Dashboard Notification Workflow (future)\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Future dashboard notification adapter; currently audited/staged.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "88c32062-3429-d6d4-2ed7-f2e943fa79e7",
+      "name": "WF043 Dashboard Notification Workflow (future)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Slack / Discord Delivery Workflow (future)\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF044 Slack / Discord Delivery Workflow (future)\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Future Slack/Discord adapter; currently audited/staged.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "a879876d-5a51-4e6e-7919-59da5a5c3222",
+      "name": "WF044 Slack / Discord Delivery Workflow (future)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        1060
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// SMS / Ticket Escalation Workflow (future)\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF045 SMS / Ticket Escalation Workflow (future)\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Future SMS/ticketing adapter; currently audited/staged.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "621beb97-c695-c5b4-47a8-8b288bc8a069",
+      "name": "WF045 SMS / Ticket Escalation Workflow (future)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.working_memory WHERE request_id = :request_id UNION ALL SELECT * FROM public.shared_memory WHERE category = :category;",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "bd775178-299c-6325-abbf-64d16a8fe950",
+      "name": "WF046 Memory Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.working_memory (request_id, payload, updated_at) VALUES (:request_id, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "1d1a48cf-dc35-76c0-c95b-4e20d2b43bd4",
+      "name": "WF047 Working Memory Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.long_memory (request_id, category, payload, created_at) VALUES (:request_id, :category, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "b9f84892-57f7-643f-925c-7675687ac62b",
+      "name": "WF048 Long Memory Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.private_memory WHERE requester = :requester;",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "625bf4f6-b078-5014-0477-1ef8efa00c3f",
+      "name": "WF049 Private Memory Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.private_memory (requester, payload, created_at) VALUES (:requester, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "cd7ca6c7-673b-f097-14ea-64204f030107",
+      "name": "WF050 Private Memory Update Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.shared_memory WHERE category = :category;",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "f9c95b40-5529-eda7-9c35-e92fc107dab5",
+      "name": "WF051 Shared Memory Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.shared_memory (category, payload, created_at) VALUES (:category, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "422606e1-f72f-098e-ba7d-93a471d14a91",
+      "name": "WF052 Shared Memory Update Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.identity_context WHERE request_id = :request_id;",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "3e0837b7-4e66-5794-7468-f4a7de31a5e0",
+      "name": "WF053 Identity Context Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        3220,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.knowledge_index WHERE category = :category LIMIT 20;",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "823e97dc-3fc6-5708-67a5-f2f5c0643a2b",
+      "name": "WF054 Knowledge Base Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        3480,
+        1220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Learning Governance Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF055 Learning Governance Workflow\",\n    workflow_category: \"memory\",\n    workflow_step_detail: \"Approve sanitized durable learning and reject unsafe memory updates.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "681d08ac-f770-f29e-7608-4102f94cfe5a",
+      "name": "WF055 Learning Governance Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3740,
+        1220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.workflow_state WHERE request_id = :request_id;",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "b4fb641b-b385-041e-d309-05d6c1a02abc",
+      "name": "WF056 Workflow State Retrieval Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        1540
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.lifecycle_state (request_id, workflow_name, payload, updated_at) VALUES (:request_id, :workflow_name, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "3b3f5ac8-54be-b8fd-d662-f9646b7486f4",
+      "name": "WF057 Lifecycle State Management Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        1540
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.agent_handoffs (request_id, requester, payload, created_at) VALUES (:request_id, :requester, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "c7f2bfba-0d68-da58-35d8-ae8023ea688e",
+      "name": "WF058 Inter-Agent Handoff Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        1540
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Conflict Resolution Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF059 Conflict Resolution Workflow\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Route ambiguous/conflicting candidates to supervisor reasoning.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "29a6aeeb-72be-193e-7fd3-f12be8d79226",
+      "name": "WF059 Conflict Resolution Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Human Escalation Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF060 Human Escalation Workflow\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Create human decision package; no irreversible action without approval.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "b8b68ab5-49a2-cc34-a777-94bebff2d8d4",
+      "name": "WF060 Human Escalation Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Operational Coordination Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF061 Operational Coordination Workflow\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Coordinate follow-up workflow requests after approval or handoff.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "54836ad0-1f5e-e6d7-6640-9c5ac45f16d8",
+      "name": "WF061 Operational Coordination Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "n8n_operational_documents",
+        "fieldsValues": {
+          "fields": [
+            {
+              "field": "workflow_name",
+              "value": "={{ $json.current_workflow || 'WF062 MongoDB Access Workflow' }}"
+            },
+            {
+              "field": "category",
+              "value": "={{ $json.workflow_category || $json.category }}"
+            },
+            {
+              "field": "payload",
+              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
+            },
+            {
+              "field": "created_at",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "221c053d-59c5-04af-8f1c-d5e5c7ee4eaa",
+      "name": "WF062 MongoDB Access Workflow",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        1840
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "placeholder_mongo_id",
+          "name": "MONGO_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Authentication / Credential Management Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF063 Authentication / Credential Management Workflow\",\n    workflow_category: \"infrastructure\",\n    workflow_step_detail: \"Resolve environment-backed credential references only; never expose raw secrets.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "7a4a58ea-5560-a00c-c9f8-52bb8a29658c",
+      "name": "WF063 Authentication / Credential Management Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DOCKER_HEALTH_PROXY_URL || \"http://n8n:5678/webhook/internal/docker-health\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ check: \"docker\", constraints: { no_raw_secrets: true } }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "743c04c9-31e5-d0cb-7ae3-43fc322d2769",
+      "name": "WF064 Docker Health Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1920,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.VPS_MONITORING_PROXY_URL || \"http://n8n:5678/webhook/internal/vps-monitoring\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ check: \"vps\", constraints: { no_raw_secrets: true } }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "9727bdef-8543-8441-58a3-e459631fe0dc",
+      "name": "WF065 VPS Monitoring Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2180,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.observability_events (request_id, category, payload, created_at) VALUES (:request_id, :category, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "7115d9f7-79fc-afb2-0cc9-e8b3dcd2e049",
+      "name": "WF066 Observability Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        1840
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.workflow_logs (request_id, workflow_name, status, payload, created_at) VALUES (:request_id, :workflow_name, :status, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "b8a2955b-5c0f-17db-1be8-684f55d1c5f9",
+      "name": "WF067 Logging Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2700,
+        1840
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.audit_logs (request_id, workflow_name, category, requester, status, payload, created_at) VALUES (:request_id, :workflow_name, :category, :requester, :status, CAST(:payload AS jsonb), NOW());",
+        "options": {
+          "placeholderValues": {
+            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
+            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
+            "status": "={{ $json.status || \"INFO\" }}"
+          }
+        }
+      },
+      "id": "5a6e2040-80db-913a-17ac-5bd478d73b9a",
+      "name": "WF068 Audit Trail Workflow",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        1840
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "placeholder_postgres_id",
+          "name": "POSTGRES_PLACEHOLDER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Client Architecture Configuration Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF069 Client Architecture Configuration Workflow\",\n    workflow_category: \"future-framework\",\n    workflow_step_detail: \"Staged P2 extensibility workflow for client architecture configuration.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "b384b9df-702f-92f1-1ab4-f3a809d0654b",
+      "name": "WF069 Client Architecture Configuration Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        2120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agent Graph Configuration Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF070 Agent Graph Configuration Workflow\",\n    workflow_category: \"future-framework\",\n    workflow_step_detail: \"Staged P2 graph configuration; n8n stores graph, OpenClaw reasons over packaged graph only.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "d2b13765-5ce8-db86-40e0-c740195d74f7",
+      "name": "WF070 Agent Graph Configuration Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        2120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deployment Configuration Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF071 Deployment Configuration Workflow\",\n    workflow_category: \"future-framework\",\n    workflow_step_detail: \"Staged deployment config request; sensitive changes require human confirmation.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+      },
+      "id": "e8e2ce4e-ece1-15d0-0b5c-8223e0c4d389",
+      "name": "WF071 Deployment Configuration Workflow",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        2120
+      ]
+    },
+    {
+      "parameters": {
+        "triggerMode": "anyNodeError"
+      },
+      "id": "df3090dc-dfd8-1140-18a3-c0d7a548a2d3",
+      "name": "UTIL020 n8n Error Trigger Workflow",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        2420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => ({ json: { ...item.json, status: 'ERROR_RETRY_REVIEW', retry_owned_by: 'n8n', current_workflow: 'UTIL021 Shared Retry and Corrective Action Handler' } }));"
+      },
+      "id": "bc8403e5-a33a-2a8c-8105-55d59e60850c",
+      "name": "UTIL021 Shared Retry and Corrective Action Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        2420
+      ]
+    }
+  ],
+  "connections": {
+    "WF001 OpenClaw Intent Gateway Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL001 Normalize Gateway Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UTIL001 Normalize Gateway Envelope": {
+      "main": [
+        [
+          {
+            "node": "UTIL002 Validate Request Candidate Shape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UTIL002 Validate Request Candidate Shape": {
+      "main": [
+        [
+          {
+            "node": "WF002 Structured Intent Router Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF002 Structured Intent Router Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL003 Category / Workflow Dispatch Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF039 Communication Request Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF046 Memory Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF055 Learning Governance Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF058 Inter-Agent Handoff Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF060 Human Escalation Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF059 Conflict Resolution Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UTIL010 Reusable Context Package Builder": {
+      "main": [
+        [
+          {
+            "node": "WF003 Agent Trigger Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF003 Agent Trigger Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF004 Agent Response Handler Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF004 Agent Response Handler Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL012 Agent Candidate Output Router",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF005 Contact Form Intake Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF006 Lead Storage Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF006 Lead Storage Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF007 Contact Confirmation Delivery Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF007 Contact Confirmation Delivery Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF008 Lead Qualification Trigger Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF008 Lead Qualification Trigger Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF009 Lead Qualification Context Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WF011 Service Question Routing Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF009 Lead Qualification Context Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL010 Reusable Context Package Builder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WF010 Qualification Conversation Delivery Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF010 Qualification Conversation Delivery Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF039 Communication Request Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF011 Service Question Routing Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF018 Helpdesk Question Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF012 Research Handoff Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF012 Research Handoff Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF013 Research Context Assembly Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UTIL003 Category / Workflow Dispatch Router": {
+      "main": [
+        [
+          {
+            "node": "WF006 Lead Storage Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF008 Lead Qualification Trigger Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF013 Research Context Assembly Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF018 Helpdesk Question Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF023 Marketing Analytics Collection Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF031 Workflow Failure Detection Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF039 Communication Request Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF046 Memory Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF056 Workflow State Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF062 MongoDB Access Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF069 Client Architecture Configuration Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF069 Client Architecture Configuration Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF013 Research Context Assembly Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF014 Public Intelligence Gathering Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF014 Public Intelligence Gathering Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF015 Research Report Storage Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF015 Research Report Storage Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF016 Executive Brief Generation Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF016 Executive Brief Generation Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL010 Reusable Context Package Builder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WF017 Research Delivery Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF017 Research Delivery Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF039 Communication Request Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF018 Helpdesk Question Intake Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF019 Identity Context Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF019 Identity Context Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF020 Conversation Context Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF020 Conversation Context Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF021 Knowledge Base Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF021 Knowledge Base Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL010 Reusable Context Package Builder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WF022 Helpdesk Response Delivery Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF022 Helpdesk Response Delivery Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF039 Communication Request Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF023 Marketing Analytics Collection Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF024 Campaign Data Aggregation Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF024 Campaign Data Aggregation Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF025 Performance Metrics Storage Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF025 Performance Metrics Storage Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF026 Marketing Intelligence Trigger Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF026 Marketing Intelligence Trigger Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL010 Reusable Context Package Builder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WF029 Supervisor Approval Workflow (marketing changes)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF029 Supervisor Approval Workflow (marketing changes)": {
+      "main": [
+        [
+          {
+            "node": "WF027 Campaign Proposal Execution Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF027 Campaign Proposal Execution Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF028 Sales Signal Tracking Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF028 Sales Signal Tracking Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF030 Scheduled Health Check Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF031 Workflow Failure Detection Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF031 Workflow Failure Detection Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF032 API Health Monitoring Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF032 API Health Monitoring Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF033 Infrastructure Monitoring Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF033 Infrastructure Monitoring Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF034 Diagnostic Context Collection Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF034 Diagnostic Context Collection Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL010 Reusable Context Package Builder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WF035 Automated Recovery Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF035 Automated Recovery Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF036 Retry / Corrective Action Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF036 Retry / Corrective Action Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF037 Incident Escalation Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF037 Incident Escalation Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF038 Critical Security Alert Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF038 Critical Security Alert Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF039 Communication Request Intake Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF040 Channel Selection Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF040 Channel Selection Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF041 Email Delivery Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF042 Desktop Notification Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF043 Dashboard Notification Workflow (future)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF044 Slack / Discord Delivery Workflow (future)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF044 Slack / Discord Delivery Workflow (future)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF045 SMS / Ticket Escalation Workflow (future)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF045 SMS / Ticket Escalation Workflow (future)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF041 Email Delivery Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF042 Desktop Notification Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF043 Dashboard Notification Workflow (future)": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF044 Slack / Discord Delivery Workflow (future)": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF045 SMS / Ticket Escalation Workflow (future)": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UTIL012 Agent Candidate Output Router": {
+      "main": [
+        [
+          {
+            "node": "UTIL003 Category / Workflow Dispatch Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF039 Communication Request Intake Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF046 Memory Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF055 Learning Governance Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF058 Inter-Agent Handoff Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF060 Human Escalation Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF059 Conflict Resolution Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF046 Memory Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF047 Working Memory Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF047 Working Memory Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF048 Long Memory Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF048 Long Memory Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF049 Private Memory Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF049 Private Memory Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF050 Private Memory Update Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF050 Private Memory Update Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF051 Shared Memory Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF051 Shared Memory Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF052 Shared Memory Update Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF052 Shared Memory Update Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF053 Identity Context Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF053 Identity Context Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF054 Knowledge Base Retrieval Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF054 Knowledge Base Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF055 Learning Governance Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF055 Learning Governance Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL010 Reusable Context Package Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF056 Workflow State Retrieval Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF057 Lifecycle State Management Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF057 Lifecycle State Management Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF058 Inter-Agent Handoff Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF058 Inter-Agent Handoff Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF059 Conflict Resolution Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF059 Conflict Resolution Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF060 Human Escalation Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF060 Human Escalation Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF061 Operational Coordination Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF061 Operational Coordination Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL010 Reusable Context Package Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF062 MongoDB Access Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF063 Authentication / Credential Management Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF063 Authentication / Credential Management Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF064 Docker Health Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF064 Docker Health Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF065 VPS Monitoring Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF065 VPS Monitoring Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF066 Observability Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF066 Observability Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF067 Logging Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF067 Logging Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF068 Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF068 Audit Trail Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF069 Client Architecture Configuration Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF070 Agent Graph Configuration Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF070 Agent Graph Configuration Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF071 Deployment Configuration Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF071 Deployment Configuration Workflow": {
+      "main": [
+        [
+          {
+            "node": "WF060 Human Escalation Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UTIL020 n8n Error Trigger Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL021 Shared Retry and Corrective Action Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UTIL021 Shared Retry and Corrective Action Handler": {
+      "main": [
+        [
+          {
+            "node": "WF034 Diagnostic Context Collection Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionTimeout": 600,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "5f0a835e-3365-ed9e-48c0-74a407c9ba7f",
+  "triggerCount": 3,
+  "tags": [
+    {
+      "id": "tag-syntrixa-openclaw-p2",
+      "name": "OpenClaw-P2"
+    },
+    {
+      "id": "tag-n8n-execution-boundary",
+      "name": "n8n-Boundary"
+    },
+    {
+      "id": "tag-openclaw-zero-external-access",
+      "name": "Zero-External-Access"
+    }
+  ],
+  "meta": {
+    "instanceId": "syntrixa-openclaw-p2",
+    "generatedBy": "Codex",
+    "sourceContract": "openclaw-workspace/TOOLS.md + MEMORY.md + ROUTING.md",
+    "generatedAt": "2026-05-26T17:18:53.206Z"
+  }
+}

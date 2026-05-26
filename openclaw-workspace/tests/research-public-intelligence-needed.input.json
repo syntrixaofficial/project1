@@ -1,0 +1,31 @@
+{
+  "target_agent": "research-agent",
+  "event_type": "lead_research",
+  "context_package": {
+    "package_id": "pkg_research_001",
+    "source_workflow": "n8n_research_handoff",
+    "subject_refs": {
+      "lead_id": "lead_001",
+      "account_id": "acct_001"
+    },
+    "lead_context": {
+      "service_interest": "AI automation system"
+    },
+    "qualification_context": {
+      "classification": "qualified_candidate"
+    },
+    "account_context": {
+      "company_name": "Rao Clinics",
+      "domain": "raoclinics.example"
+    },
+    "public_intelligence": [],
+    "workflow_state": {
+      "research_requested": true
+    },
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "brief"
+}

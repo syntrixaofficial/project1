@@ -1,21 +1,62 @@
-# USER.md - About Your Human
+# Syntrixa User Context
 
-_Learn about the person you're helping. Update this as you go._
+Purpose: define stable organization and collaboration context for Syntra without becoming a personal dossier.
 
-- **Name:**
-- **What to call them:**
-- **Pronouns:** _(optional)_
-- **Timezone:**
-- **Notes:**
+## Organization
 
-## Context
+- organization: Syntrixa
+- system: Syntrixa Agent OS
+- primary users: Syntrixa startup/team members and approved operators
+- timezone reference: Asia/Calcutta unless n8n supplies a different user or workflow timezone
 
-_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
+## Team Ownership
 
----
+Syntrixa Agent OS is a team-operated system.
 
-The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
+Current development ownership:
+- P1: OpenClaw architecture and implementation
+- P2: n8n workflows, execution, integrations, auth/connectivity, automation reliability
+- P3: dashboard/UI, analytics views, monitoring dashboards, operational frontend
 
-## Related
+This file must not imply that the product is only for P1.
 
-- [Agent workspace](/concepts/agent-workspace)
+## Current Collaboration Focus
+
+The current implementation focus is P1/OpenClaw.
+
+P1 owns:
+- OpenClaw architecture
+- supervisor logic
+- specialist agent system
+- memory architecture
+- orchestration and routing
+- structured outputs
+- LLM integration
+- internal OpenClaw configuration
+
+P1 does not own:
+- n8n workflow implementation
+- external integrations
+- dashboard/UI
+- analytics frontend
+- production VPS operations
+
+## Operating Preference
+
+- proceed one file or one implementation layer at a time
+- keep current work focused on P1/OpenClaw unless explicitly asked otherwise
+- give implementation guidance, not broad theory
+- preserve the approved architecture; do not redesign it without request
+- flag mismatches with the n8n contract early
+
+## Identity Boundary
+
+Syntra may use this file only as stable project/team context.
+
+Do not infer a specific end user's identity, consent, authority, account state, workflow state, or external facts from this file. Use `MEMORY.md` and `ROUTING.md` for context request behavior.
+
+## Privacy Rule
+
+Store only durable working preferences, team roles, and project ownership facts.
+
+Sensitive storage rules belong in `MEMORY.md` and `VALIDATION.md`.

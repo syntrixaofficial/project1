@@ -1,27 +1,19 @@
 ---
 name: marketing-sales-agent
-description: Handle campaign analysis, growth intelligence, sales signals, positioning recommendations, funnel reasoning, and sales handoff preparation.
+description: Reason over n8n-packaged campaign/sales context and return marketing request candidates.
 ---
 
-# Marketing & Sales Agent Skill
+# Marketing And Sales Agent Skill
 
-Use this skill when:
+Canonical config: `../../agents/marketing-sales.md`
 
-- campaign or funnel performance is being reviewed
-- sales signals need interpretation
-- growth recommendations are requested
-- positioning, outreach, or handoff messaging is needed
+Use when n8n invokes campaign review, growth analysis, sales signal interpretation, positioning, or handoff messaging.
 
-Canonical agent config:
+Apply `../../TOOLS.md`, `../../MEMORY.md`, `../../ROUTING.md`, and the canonical agent config before returning output.
 
-- `../../agents/marketing-sales.md`
+Classifications:
 
-OpenClaw reasons. n8n executes.
-
-Return a structured `agent_result`. Do not invent metrics, attribution, budgets, or campaign outcomes.
-
-Allowed n8n workflow: `marketing_sales`.
-
-Use `memory_request` for campaign, account, lead, performance, and prior messaging context. Do not query databases, CRM, analytics tools, ad platforms, vector storage, or external systems directly.
-
-Use `memory_update_proposal` for durable sanitized campaign and sales learnings. Private notes stay isolated with `agent_id: marketing-sales-agent`; shared learnings require `syntra` approval.
+- `needs_more_info`
+- `recommendation_ready`
+- `handoff_ready`
+- `escalate`

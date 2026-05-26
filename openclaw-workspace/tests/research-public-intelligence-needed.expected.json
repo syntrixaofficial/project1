@@ -1,0 +1,21 @@
+{
+  "type": "agent_result",
+  "agent": "research-agent",
+  "classification": "needs_more_info",
+  "confidence": "high",
+  "expected_candidate": {
+    "type": "context_request",
+    "category": "research",
+    "required_scopes_hint": [
+      "public_intelligence",
+      "website_summary",
+      "company_profile"
+    ]
+  },
+  "must_not_do": [
+    "browse",
+    "scrape",
+    "search_web",
+    "call_enrichment_api"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "target_agent": "lead-qualification-agent",
+  "event_type": "lead_query",
+  "context_package": {
+    "package_id": "pkg_lead_service_001",
+    "source_workflow": "n8n_lead_followup",
+    "lead": {
+      "lead_id": "lead_002",
+      "message": "Can you also build the dashboard and explain your service packages?"
+    },
+    "contact": {
+      "contact_id": "contact_002"
+    },
+    "workflow_state": {
+      "qualification_active": true
+    },
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "status"
+}

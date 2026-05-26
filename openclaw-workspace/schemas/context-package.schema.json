@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syntrixa.local/openclaw/schemas/context-package.schema.json",
+  "title": "n8n Packaged Context For OpenClaw",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["context_package"],
+  "properties": {
+    "context_package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_id", "source_workflow", "constraints"],
+      "properties": {
+        "package_id": { "$ref": "common.schema.json#/$defs/uuid" },
+        "source_workflow": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "subject_refs": { "$ref": "common.schema.json#/$defs/subject_refs" },
+        "scopes": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "enum": [
+              "working",
+              "long",
+              "private",
+              "shared",
+              "identity",
+              "knowledge",
+              "workflow_state",
+              "lifecycle_state",
+              "audit",
+              "lead",
+              "research",
+              "helpdesk",
+              "marketing",
+              "health"
+            ]
+          }
+        },
+        "facts": { "$ref": "common.schema.json#/$defs/string_list" },
+        "prior_interactions": { "type": "array", "maxItems": 50, "items": { "$ref": "common.schema.json#/$defs/open_object" } },
+        "workflow_state": { "$ref": "common.schema.json#/$defs/open_object" },
+        "lifecycle_state": { "$ref": "common.schema.json#/$defs/open_object" },
+        "knowledge_context": { "type": "array", "maxItems": 50, "items": { "$ref": "common.schema.json#/$defs/open_object" } },
+        "lead": { "$ref": "common.schema.json#/$defs/open_object" },
+        "contact": { "$ref": "common.schema.json#/$defs/open_object" },
+        "account": { "$ref": "common.schema.json#/$defs/open_object" },
+        "identity_context": { "$ref": "common.schema.json#/$defs/open_object" },
+        "source": { "$ref": "common.schema.json#/$defs/open_object" },
+        "consent": { "$ref": "common.schema.json#/$defs/open_object" },
+        "public_intelligence": { "type": "array", "maxItems": 50, "items": { "$ref": "common.schema.json#/$defs/open_object" } },
+        "analytics_context": { "$ref": "common.schema.json#/$defs/open_object" },
+        "crm_context": { "$ref": "common.schema.json#/$defs/open_object" },
+        "monitoring_context": { "$ref": "common.schema.json#/$defs/open_object" },
+        "failure_context": { "$ref": "common.schema.json#/$defs/open_object" },
+        "trace_refs": { "$ref": "common.schema.json#/$defs/string_list" },
+        "constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["minimal_context", "no_raw_secrets"],
+          "properties": {
+            "minimal_context": { "type": "boolean", "const": true },
+            "no_raw_secrets": { "type": "boolean", "const": true },
+            "retention": { "type": "string", "enum": ["ephemeral", "session", "durable"] }
+          }
+        }
+      }
+    }
+  }
+}

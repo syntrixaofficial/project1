@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syntrixa.local/openclaw/schemas/request-candidate.schema.json",
+  "title": "OpenClaw To n8n Request Candidate",
+  "oneOf": [
+    { "$ref": "#/$defs/workflow_request" },
+    { "$ref": "#/$defs/communication_request" },
+    { "$ref": "#/$defs/context_request" },
+    { "$ref": "#/$defs/memory_update" },
+    { "$ref": "#/$defs/handoff" },
+    { "$ref": "#/$defs/human_intervention" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["id", "type", "category", "priority", "requester", "timestamp", "version"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/uuid" },
+        "type": { "$ref": "common.schema.json#/$defs/request_type" },
+        "category": { "$ref": "common.schema.json#/$defs/category" },
+        "priority": { "$ref": "common.schema.json#/$defs/priority" },
+        "requester": { "$ref": "common.schema.json#/$defs/requester" },
+        "subject_refs": { "$ref": "common.schema.json#/$defs/subject_refs" },
+        "timestamp": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "version": { "type": "string", "const": "1.0" }
+      }
+    },
+    "workflow_request": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["workflow", "payload"],
+          "properties": {
+            "type": { "const": "workflow_request" },
+            "workflow": { "type": "string", "minLength": 1, "maxLength": 160 },
+            "payload": { "$ref": "common.schema.json#/$defs/open_object" },
+            "requires_human_confirmation": { "type": "boolean" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "communication_request": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["payload"],
+          "properties": {
+            "type": { "const": "communication_request" },
+            "category": { "const": "communication" },
+            "channel_hint": { "type": "string", "enum": ["email", "desktop", "dashboard", "slack", "discord", "sms", "ticketing"] },
+            "payload": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["purpose", "recipient_ref"],
+              "properties": {
+                "purpose": { "type": "string", "maxLength": 300 },
+                "recipient_ref": { "type": "string", "maxLength": 256 },
+                "template": { "type": "string", "maxLength": 160 },
+                "subject": { "type": "string", "maxLength": 300 },
+                "body": { "$ref": "common.schema.json#/$defs/safe_text" },
+                "questions": { "$ref": "common.schema.json#/$defs/string_list" },
+                "context_summary": { "$ref": "common.schema.json#/$defs/safe_text" }
+              }
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "context_request": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["purpose", "required_scopes", "constraints"],
+          "properties": {
+            "type": { "const": "context_request" },
+            "purpose": { "type": "string", "minLength": 1, "maxLength": 1000 },
+            "required_scopes": { "type": "array", "minItems": 1, "maxItems": 20, "items": { "type": "string", "maxLength": 80 } },
+            "constraints": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["minimal_context", "no_raw_secrets"],
+              "properties": {
+                "minimal_context": { "type": "boolean", "const": true },
+                "no_raw_secrets": { "type": "boolean", "const": true }
+              }
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "memory_update": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["scope", "content", "reason", "confidence", "retention_hint"],
+          "properties": {
+            "type": { "const": "memory_update" },
+            "category": { "const": "memory" },
+            "scope": { "type": "string", "enum": ["working", "long", "private", "shared", "identity", "audit", "knowledge"] },
+            "content": { "$ref": "common.schema.json#/$defs/safe_text" },
+            "reason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+            "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+            "retention_hint": { "type": "string", "enum": ["ephemeral", "session", "durable"] },
+            "owner_agent_id": { "$ref": "common.schema.json#/$defs/agent_id" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "handoff": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["target_agent", "reason", "context_summary"],
+          "properties": {
+            "type": { "const": "handoff" },
+            "target_agent": { "$ref": "common.schema.json#/$defs/agent_id" },
+            "reason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+            "context_summary": { "$ref": "common.schema.json#/$defs/safe_text" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "human_intervention": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "required": ["reason", "decision_needed"],
+          "properties": {
+            "type": { "const": "human_intervention" },
+            "category": { "const": "escalation" },
+            "reason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+            "decision_needed": { "type": "string", "minLength": 1, "maxLength": 1000 },
+            "recommended_options": { "$ref": "common.schema.json#/$defs/string_list" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

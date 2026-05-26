@@ -1,0 +1,17 @@
+{
+  "type": "agent_result",
+  "agent": "marketing-sales-agent",
+  "classification": "recommendation_ready",
+  "confidence": "medium",
+  "must_include": [
+    "observed_signals",
+    "inferred_signals",
+    "recommendations",
+    "n8n_request_candidates"
+  ],
+  "must_not_do": [
+    "change_campaign_directly",
+    "access_crm_directly",
+    "invent_metrics"
+  ]
+}

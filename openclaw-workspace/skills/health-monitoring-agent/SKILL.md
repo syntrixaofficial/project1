@@ -1,28 +1,20 @@
 ---
 name: health-monitoring-agent
-description: Handle workflow failures, incident classification, retry recommendations, health checks, sanitized trace summaries, and escalation reports.
+description: Reason over n8n-packaged diagnostic context and return health request candidates.
 ---
 
 # Health Monitoring Agent Skill
 
-Use this skill when:
+Canonical config: `../../agents/health-monitoring.md`
 
-- a workflow fails
-- retry safety needs review
-- an incident or health signal appears
-- repeated failure context needs classification
-- escalation preparation is required
+Use when n8n invokes incident, workflow failure, retry review, health check, or critical incident reasoning.
 
-Canonical agent config:
+Apply `../../TOOLS.md`, `../../MEMORY.md`, `../../ROUTING.md`, and the canonical agent config before returning output.
 
-- `../../agents/health-monitoring.md`
+Classifications:
 
-OpenClaw reasons. n8n executes.
-
-Return a structured `agent_result`. Propose retry metadata only; n8n owns retry execution.
-
-Use `memory_request` for trace, workflow, incident, and prior failure context. Do not query databases, Redis, logs backends, Docker, monitoring systems, n8n, or external systems directly.
-
-Allowed n8n workflow: `health_check`.
-
-Use `memory_update_proposal` for durable sanitized incident and failure-pattern learnings. Private notes stay isolated with `agent_id: health-monitoring-agent`; shared operational learnings require `syntra` approval.
+- `needs_more_info`
+- `retry_recommended`
+- `no_retry`
+- `escalate`
+- `incident_report_ready`

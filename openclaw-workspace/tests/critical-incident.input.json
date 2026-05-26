@@ -1,0 +1,27 @@
+{
+  "target_agent": "health-monitoring-agent",
+  "event_type": "critical_incident",
+  "context_package": {
+    "package_id": "pkg_health_critical_001",
+    "source_workflow": "n8n_critical_alert",
+    "failure_context": {
+      "workflow_id": "wf_payment_or_auth_related",
+      "sanitized_error_class": "credential_failure",
+      "retry_count": 3
+    },
+    "monitoring_context": {
+      "severity_signal": "critical"
+    },
+    "impact_context": {
+      "business_impact": "customer_communications_blocked"
+    },
+    "trace_refs": [
+      "trace_critical_001"
+    ],
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "escalation_report"
+}

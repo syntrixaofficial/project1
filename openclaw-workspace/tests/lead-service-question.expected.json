@@ -1,0 +1,14 @@
+{
+  "type": "agent_result",
+  "agent": "lead-qualification-agent",
+  "classification": "handoff_ready",
+  "confidence": "medium",
+  "expected_candidate": {
+    "type": "handoff",
+    "target_agent": "helpdesk-agent"
+  },
+  "must_not_do": [
+    "answer_helpdesk_question_directly",
+    "trigger_helpdesk_directly"
+  ]
+}

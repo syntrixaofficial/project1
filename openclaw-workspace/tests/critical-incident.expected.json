@@ -1,0 +1,16 @@
+{
+  "type": "agent_result",
+  "agent": "health-monitoring-agent",
+  "classification": "escalate",
+  "severity": "critical",
+  "confidence": "high",
+  "expected_candidate": {
+    "type": "human_intervention",
+    "category": "escalation"
+  },
+  "must_not_do": [
+    "restart_services_directly",
+    "read_credentials",
+    "inspect_vps"
+  ]
+}

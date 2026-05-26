@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syntrixa.local/openclaw/schemas/specialist-result.schema.json",
+  "title": "Syntrixa Specialist Agent Result",
+  "oneOf": [
+    { "$ref": "#/$defs/lead_result" },
+    { "$ref": "#/$defs/research_result" },
+    { "$ref": "#/$defs/helpdesk_result" },
+    { "$ref": "#/$defs/marketing_result" },
+    { "$ref": "#/$defs/health_result" }
+  ],
+  "$defs": {
+    "base_result": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["type", "agent", "event_type", "classification", "confidence", "n8n_request_candidates"],
+      "properties": {
+        "type": { "const": "agent_result" },
+        "agent": { "$ref": "common.schema.json#/$defs/agent_id" },
+        "event_type": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "classification": { "type": "string" },
+        "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+        "context_package_used": { "$ref": "common.schema.json#/$defs/open_object" },
+        "n8n_request_candidates": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "request-candidate.schema.json" }
+        }
+      }
+    },
+    "lead_result": {
+      "allOf": [
+        { "$ref": "#/$defs/base_result" },
+        {
+          "properties": {
+            "agent": { "const": "lead-qualification-agent" },
+            "classification": { "enum": ["reject_spam", "needs_more_info", "continue_dialogue", "qualified_candidate", "handoff_ready", "escalate"] },
+            "lead_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+            "recommended_questions": { "$ref": "common.schema.json#/$defs/string_list" },
+            "qualification": { "$ref": "common.schema.json#/$defs/open_object" }
+          }
+        }
+      ]
+    },
+    "research_result": {
+      "allOf": [
+        { "$ref": "#/$defs/base_result" },
+        {
+          "properties": {
+            "agent": { "const": "research-agent" },
+            "classification": { "enum": ["needs_more_info", "research_summary_ready", "handoff_ready", "escalate"] },
+            "subject_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+            "opportunity_signals": { "$ref": "common.schema.json#/$defs/string_list" },
+            "risk_signals": { "$ref": "common.schema.json#/$defs/string_list" }
+          }
+        }
+      ]
+    },
+    "helpdesk_result": {
+      "allOf": [
+        { "$ref": "#/$defs/base_result" },
+        {
+          "properties": {
+            "agent": { "const": "helpdesk-agent" },
+            "classification": { "enum": ["answer_ready", "needs_more_info", "handoff_ready", "escalate"] },
+            "answer_draft": { "$ref": "common.schema.json#/$defs/safe_text" },
+            "clarifying_questions": { "$ref": "common.schema.json#/$defs/string_list" }
+          }
+        }
+      ]
+    },
+    "marketing_result": {
+      "allOf": [
+        { "$ref": "#/$defs/base_result" },
+        {
+          "properties": {
+            "agent": { "const": "marketing-sales-agent" },
+            "classification": { "enum": ["needs_more_info", "recommendation_ready", "handoff_ready", "escalate"] },
+            "observed_signals": { "$ref": "common.schema.json#/$defs/string_list" },
+            "inferred_signals": { "$ref": "common.schema.json#/$defs/string_list" },
+            "recommendations": { "$ref": "common.schema.json#/$defs/string_list" },
+            "messaging_angles": { "$ref": "common.schema.json#/$defs/string_list" }
+          }
+        }
+      ]
+    },
+    "health_result": {
+      "allOf": [
+        { "$ref": "#/$defs/base_result" },
+        {
+          "properties": {
+            "agent": { "const": "health-monitoring-agent" },
+            "classification": { "enum": ["needs_more_info", "retry_recommended", "no_retry", "escalate", "incident_report_ready"] },
+            "severity": { "enum": ["low", "medium", "high", "critical"] },
+            "sanitized_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+            "trace_refs": { "$ref": "common.schema.json#/$defs/string_list" },
+            "likely_owner": { "enum": ["openclaw", "n8n", "external_service", "configuration", "unknown"] },
+            "retry_metadata": { "type": ["object", "null"], "additionalProperties": true }
+          }
+        }
+      ]
+    }
+  }
+}

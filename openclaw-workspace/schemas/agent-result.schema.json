@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syntrixa.local/openclaw/schemas/agent-result.schema.json",
+  "title": "Generic OpenClaw Agent Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "agent", "event_type", "classification", "confidence", "n8n_request_candidates"],
+  "properties": {
+    "type": { "type": "string", "const": "agent_result" },
+    "agent": { "$ref": "common.schema.json#/$defs/agent_id" },
+    "event_type": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "classification": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
+    "summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "context_package_used": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "package_id": { "type": ["string", "null"], "maxLength": 128 },
+        "source_workflow": { "type": ["string", "null"], "maxLength": 160 }
+      }
+    },
+    "facts": { "$ref": "common.schema.json#/$defs/string_list" },
+    "inferences": { "$ref": "common.schema.json#/$defs/string_list" },
+    "unknowns": { "$ref": "common.schema.json#/$defs/string_list" },
+    "assumptions": { "$ref": "common.schema.json#/$defs/string_list" },
+    "signals": { "$ref": "common.schema.json#/$defs/string_list" },
+    "missing_fields": { "$ref": "common.schema.json#/$defs/string_list" },
+    "recommended_next_steps": { "$ref": "common.schema.json#/$defs/string_list" },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ready": { "type": "boolean" },
+        "target_agent": { "type": ["string", "null"] },
+        "reason": { "type": ["string", "null"], "maxLength": 1000 },
+        "context_summary": { "type": ["string", "null"], "maxLength": 8000 }
+      }
+    },
+    "n8n_request_candidates": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "request-candidate.schema.json" }
+    }
+  }
+}

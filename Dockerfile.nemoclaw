@@ -39,6 +39,7 @@ WORKDIR /workspace/openclaw-workspace
 
 COPY docker-entrypoint.nemoclaw.sh /usr/local/bin/docker-entrypoint.nemoclaw.sh
 COPY mock-inference-server.mjs /usr/local/bin/mock-inference-server.mjs
+COPY agent-invoke-server.mjs /usr/local/bin/agent-invoke-server.mjs
 RUN chmod +x /usr/local/bin/docker-entrypoint.nemoclaw.sh
 
 EXPOSE 18789 8990 8000 11434 11435

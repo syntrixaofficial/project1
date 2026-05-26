@@ -1,0 +1,28 @@
+{
+  "type": "agent_result",
+  "agent": "lead-qualification-agent",
+  "classification": "continue_dialogue",
+  "confidence": "medium",
+  "must_include": [
+    "lead_summary",
+    "facts",
+    "unknowns",
+    "recommended_questions",
+    "qualification",
+    "n8n_request_candidates"
+  ],
+  "allowed_request_types": [
+    "communication_request",
+    "memory_update",
+    "context_request",
+    "handoff",
+    "human_intervention",
+    "workflow_request"
+  ],
+  "must_not_do": [
+    "send_email_directly",
+    "query_database",
+    "trigger_agent_directly",
+    "claim_execution_completed"
+  ]
+}

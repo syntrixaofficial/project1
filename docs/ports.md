@@ -11,7 +11,7 @@ Containers communicate internally by Docker service name and container port.
 | Service | Docker service name | Container name | Internal URL | Host port |
 | --- | --- | --- | --- | --- |
 | NemoClaw manager | `nemoclaw` | `syntrixa-nemoclaw` | `http://nemoclaw:18789` | `127.0.0.1:18789` |
-| OpenShell gateway | managed inside `nemoclaw` | managed by NemoClaw | `http://nemoclaw:8990` | `127.0.0.1:8990` |
+| OpenClaw invoke wrapper | `nemoclaw` | `syntrixa-nemoclaw` | `http://nemoclaw:8990` | `127.0.0.1:8990` |
 | NemoClaw dashboard / OpenClaw UI | managed inside `nemoclaw` | `syntrixa-openclaw` sandbox | `http://nemoclaw:18789` | `127.0.0.1:18789` |
 
 ## Reserved For Later
@@ -20,8 +20,8 @@ Containers communicate internally by Docker service name and container port.
 | --- | --- | --- | --- | --- |
 | n8n | `n8n` | `syntrixa-n8n` | `http://n8n:5678` | `5678` |
 | PostgreSQL | `postgres` | `syntrixa-postgres` | `postgres:5432` | `5432` |
+| MongoDB | `mongodb` | `syntrixa-mongodb` | `mongodb://mongodb:27017` | `27017` |
 | Redis | `redis` | `syntrixa-redis` | `redis:6379` | `6379` |
-| Vector DB | `vector-db` | `syntrixa-vector-db` | `http://vector-db:6333` | `6333` |
 | Nginx | `nginx` | `syntrixa-nginx` | `http://nginx:80` / `https://nginx:443` | `80`, `443` |
 | Prometheus | `prometheus` | `syntrixa-prometheus` | `http://prometheus:9090` | `9090` |
 | Grafana | `grafana` | `syntrixa-grafana` | `http://grafana:3000` | `3000` |
@@ -57,9 +57,32 @@ http://n8n:5678
 Default webhook path:
 
 ```text
-/webhook/openclaw
+/webhook/openclaw/intent
 ```
+
+This matches the imported n8n workflow webhook node:
+
+- workflow file: `newn8n.json`
+- node: `UTIL001 Normalize Gateway Envelope`
+- method: `POST`
+- n8n path: `openclaw/intent`
 
 Do not use `localhost` for container-to-container calls.
 
 Inside Docker, `localhost` means the current container.
+
+## n8n To OpenClaw Invocation
+
+The latest workflow file `newn8n.json` invokes OpenClaw through:
+
+```text
+env:OPENCLAW_AGENT_INVOKE_URL
+```
+
+Current fallback in `newn8n.json`:
+
+```text
+http://nemoclaw:8990/openclaw/agent/invoke
+```
+
+This is implemented by `agent-invoke-server.mjs` inside the `nemoclaw` container. The real OpenClaw reasoning backend can be wired behind this endpoint later without changing P2 workflows.

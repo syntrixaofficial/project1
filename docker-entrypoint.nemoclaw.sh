@@ -25,4 +25,6 @@ if [ "${NEMOCLAW_PROVIDER:-}" = "custom" ]; then
   node /usr/local/bin/mock-inference-server.mjs >/var/log/nemoclaw/mock-inference.log 2>&1 &
 fi
 
+node /usr/local/bin/agent-invoke-server.mjs >/var/log/nemoclaw/agent-invoke.log 2>&1 &
+
 exec "$@"

@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syntrixa.local/openclaw/schemas/common.schema.json",
+  "title": "Syntrixa OpenClaw Common Types",
+  "type": "object",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "high", "urgent"]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "agent_id": {
+      "type": "string",
+      "enum": [
+        "syntra",
+        "lead-qualification-agent",
+        "research-agent",
+        "helpdesk-agent",
+        "marketing-sales-agent",
+        "health-monitoring-agent"
+      ]
+    },
+    "requester": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role"],
+      "properties": {
+        "id": { "$ref": "#/$defs/agent_id" },
+        "role": { "type": "string", "enum": ["agent", "supervisor"] }
+      }
+    },
+    "request_type": {
+      "type": "string",
+      "enum": [
+        "workflow_request",
+        "communication_request",
+        "context_request",
+        "memory_update",
+        "handoff",
+        "human_intervention"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "contact",
+        "lead",
+        "research",
+        "helpdesk",
+        "marketing",
+        "health",
+        "communication",
+        "memory",
+        "escalation",
+        "infrastructure"
+      ]
+    },
+    "subject_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lead_id": { "type": ["string", "null"], "maxLength": 128 },
+        "contact_id": { "type": ["string", "null"], "maxLength": 128 },
+        "account_id": { "type": ["string", "null"], "maxLength": 128 },
+        "user_id": { "type": ["string", "null"], "maxLength": 128 },
+        "workflow_id": { "type": ["string", "null"], "maxLength": 128 },
+        "trace_id": { "type": ["string", "null"], "maxLength": 128 },
+        "document_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "memory_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "research_ref": { "type": ["string", "null"], "maxLength": 256 },
+        "campaign_id": { "type": ["string", "null"], "maxLength": 128 },
+        "incident_id": { "type": ["string", "null"], "maxLength": 128 }
+      }
+    },
+    "safe_text": {
+      "type": "string",
+      "maxLength": 8000
+    },
+    "string_list": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "type": "string", "maxLength": 1000 }
+    },
+    "open_object": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,233 +1,99 @@
 # Syntrixa Execution Contract
 
-Purpose: runtime tool and execution boundary for `syntra` and OpenClaw agents.
+OpenClaw reasons. n8n executes.
 
-OpenClaw reasons.
-
-n8n executes.
-
-OpenClaw does not own direct external tools.
+The current P2 n8n workflow contract is `newn8n.json`.
 
 ## Boundary
 
-OpenClaw must not directly:
+OpenClaw must never directly:
 
-- call external service APIs
-- authenticate third-party services
-- send email or external messages
+- call APIs
+- authenticate services
+- send email/chat/alerts/SMS/tickets
 - mutate external systems
-- run n8n workflow logic internally
-- bypass n8n through direct tool use
-- access databases, memory stores, knowledge stores, workflow persistence, identity stores, monitoring, Docker, VPS, or analytics providers
+- read/write Postgres, MongoDB, Redis, files, identity, knowledge, workflow, monitoring, Docker, or VPS infra
+- run n8n logic internally
+- bypass n8n
 
-n8n owns:
+n8n owns credentials, API calls, delivery, storage, memory, identity, workflow state, observability, retries, and infra actions.
 
-- API calls
-- service authentication
-- email sending
-- external mutations
-- external retries
-- external automation reliability
-- database access
-- memory retrieval and persistence
-- knowledge retrieval
-- identity retrieval
-- workflow and lifecycle persistence
-- monitoring, observability, and infrastructure actions
+## OpenClaw Capabilities
 
-## Internal Capabilities
+OpenClaw may only:
 
-OpenClaw may use internal capabilities for:
+- reason
+- route
+- interpret supplied context
+- select specialists
+- generate structured outputs
+- validate request candidates
+- mediate communication
+- classify health incidents
+- prepare escalation
 
-- reasoning
-- routing
-- supplied context interpretation
-- specialist agent selection
-- structured output generation
-- request validation
-- communication mediation
-- health classification
-- escalation preparation
+## n8n Gateway
 
-Internal capabilities must not become hidden external execution.
+Entrypoint:
 
-## Context, Memory, And Storage Boundary
+- `POST /webhook/openclaw/intent`
+- latest workflow file: `newn8n.json`
+- n8n node: `UTIL001 Normalize Gateway Envelope`
 
-Memory, identity, knowledge, workflow state, and lifecycle state are not direct OpenClaw capabilities.
+Validate outputs against `schemas/request-candidate.schema.json`.
 
-Agents must not directly read or write:
-
-- Postgres
-- Redis
-- Vector DB
-- filesystem memory stores
-- knowledge stores
-- identity stores
-- workflow persistence stores
-
-Allowed flow:
-
-```text
-n8n gathers context -> n8n packages context -> OpenClaw reasons
-OpenClaw request candidate -> n8n Intent Gateway -> n8n workflow -> external system/storage
-```
-
-Storage ownership:
-
-- Postgres: durable memory, identity context, private/shared memory metadata, audit records.
-- Redis: short-lived working/session state only.
-- Vector DB: sanitized semantic references only.
-
-Agents use packaged context and record references such as `lead_id`, `account_id`, `contact_id`, `trace_id`, or `memory_ref`. They do not hardcode database clients, connection strings, SQL, credentials, vector queries, retrieval APIs, or storage logic.
-
-## Workflow Intent
-
-All external action requests must become a `workflow_request` intent.
-
-```json
-{
-  "id": "<uuid>",
-  "type": "workflow_request",
-  "workflow": "<allowlisted_workflow_name>",
-  "priority": "low|normal|high|urgent",
-  "payload": {},
-  "requester": {
-    "id": "<agent-id>",
-    "role": "agent|supervisor"
-  },
-  "timestamp": "<ISO8601>",
-  "version": "1.0"
-}
-```
-
-## Validation
-
-Before sending or approving an intent, `syntra` verifies:
-
-- `type` is `workflow_request`
-- `workflow` is explicit and allowlisted
-- `priority` is valid
-- `requester.id` is known
-- `requester.role` is authorized for the workflow
-- `payload` is minimal and workflow-specific
-- `payload` contains no raw secrets or credentials
-- `payload` does not contain executable code or shell commands
-- expected result is clear
-- irreversible actions have explicit human confirmation
-
-## Secret Handling
-
-Secrets must not appear in:
-
-- markdown files
-- JSON config
-- prompts
-- logs
-- workflow payloads
-- memory
-
-Use environment-backed secret references only.
-
-Allowed pattern:
-
-```json
-{
-  "secret_ref": "EMAIL_PROVIDER_API_KEY"
-}
-```
-
-Disallowed pattern:
-
-```json
-{
-  "api_key": "raw_secret_value"
-}
-```
-
-## Transport
-
-OpenClaw-to-n8n communication uses REST/webhooks.
-
-Default internal n8n address:
-
-```text
-http://n8n:5678
-```
-
-Default webhook path:
-
-```text
-/webhook/openclaw/intent
-```
-
-Redis queues are intentionally not part of the OpenClaw-to-n8n contract.
-
-## n8n Intent Gateway
-
-The current n8n workflow import (`n8n.json`) exposes one OpenClaw entrypoint:
-
-- webhook node: `UTIL001 core.intent.gateway`
-- method: `POST`
-- path: `openclaw/intent`
-- runtime URL path: `/webhook/openclaw/intent`
-
-There are no per-agent HTTP endpoints. All agent requests enter the same gateway and are routed by `type`, then by `workflow` when `type` is `workflow_request`.
-
-Allowed top-level request types:
+Allowed request types:
 
 - `workflow_request`
 - `communication_request`
 - `context_request`
 - `memory_update`
-- `human_intervention`
 - `handoff`
+- `human_intervention`
 
-Supported request categories:
+Allowed categories:
 
-- contact
-- lead
-- research
-- helpdesk
-- marketing
-- health
-- communication
-- memory
-- escalation
-- infrastructure
+- contact, lead, research, helpdesk, marketing, health, communication, memory, escalation, infrastructure
 
-Allowed `workflow_request.workflow` values are owned by n8n allowlists and must map to one of the supported categories.
+## Request Shape
 
-All OpenClaw callable agent interfaces should be invoked by n8n through the same gateway or through the approved n8n OpenClaw invocation workflow. There are no direct per-agent external integrations.
+All requests must include:
 
-Supported communication channels in the n8n router:
+- id
+- type
+- category
+- priority
+- requester
+- timestamp
+- version
 
-- `email`
-- `desktop`
-- `slack`
-- `discord`
+`version` must be `"1.0"` for the current P2 n8n contract.
 
-## Communication Channels
+## Validation
 
-Agents request communication abstractly.
+`syntra` checks that the request:
 
-Supported logical channels:
+- uses allowed type/category
+- has an authorized requester
+- has minimal, purpose-specific payloads
+- contains no secrets, credentials, code, or shell commands
+- does not claim execution without n8n
+- requires human confirmation for sensitive operations
 
-- email
-- desktop
-- dashboard
-- alerts
-- future slack/discord
+## Secrets
 
-Agents do not hardcode transport.
+No secrets in markdown, JSON, prompts, logs, workflows, memory, or context.
 
-External communication requires an n8n `communication_request` or approved workflow request through the intent gateway.
+Use only environment-backed secret refs.
 
-## Failure Handling
+## Storage Boundary
 
-If execution fails or is unsafe:
+n8n owns storage.
 
-- do not retry directly from OpenClaw
-- route failure context to Health Monitoring Agent
-- preserve sanitized trace id and validation result
-- propose retry metadata only if needed
-- let n8n own external retry execution
+OpenClaw only reasons over packaged context or emits `context_request` / `memory_update`.
+
+## Communication
+
+Agents may request abstract communication: purpose, recipient, channel hint, template hint, content, questions, urgency.
+
+n8n selects channel, resolves creds, sends, logs, retries.

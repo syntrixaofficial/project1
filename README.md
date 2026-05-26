@@ -17,7 +17,7 @@ Strict rule:
 - OpenClaw reasons and emits structured execution intents.
 - n8n executes all external actions.
 - OpenClaw agents do not call external service APIs, authenticate third-party services, send email, or mutate external systems directly.
-- OpenClaw agents do not directly read or write Postgres, Redis, Vector DB, memory files, identity stores, knowledge stores, workflow persistence, monitoring systems, Docker, VPS infrastructure, analytics providers, communication channels, or external APIs.
+- OpenClaw agents do not directly read or write Postgres, MongoDB, Redis, memory files, identity stores, knowledge stores, workflow persistence, monitoring systems, Docker, VPS infrastructure, analytics providers, communication channels, or external APIs.
 - n8n gathers and packages context before invoking OpenClaw. Missing context becomes a `context_request` candidate. Durable storage becomes a `memory_update` candidate.
 
 ## Docker Workflow
@@ -100,11 +100,23 @@ Important internal addresses:
 - NemoClaw/OpenClaw UI: `http://nemoclaw:18789`
 - n8n later: `http://n8n:5678`
 - OpenClaw-to-n8n intent gateway: `http://n8n:5678/webhook/openclaw/intent`
+- n8n-to-OpenClaw invoke URL: `http://nemoclaw:8990/openclaw/agent/invoke`
 - PostgreSQL later: `postgres:5432`
+- MongoDB later: `mongodb:27017`
 - Redis later: `redis:6379`
-- Vector DB later: `http://vector-db:6333`
 
 Do not use `localhost` for container-to-container communication.
+
+## n8n Contract
+
+- Current workflow contract: `newn8n.json`
+- Legacy reference only: `n8n.legacy.json`
+- Required request candidate version: `"1.0"`
+- P2 invocation contract: [docs/p2-openclaw-invocation-contract.md](docs/p2-openclaw-invocation-contract.md)
+- P3 dashboard contract: [docs/p3-openclaw-dashboard-contract.md](docs/p3-openclaw-dashboard-contract.md)
+- Runtime wrapper: [docs/openclaw-runtime-wrapper.md](docs/openclaw-runtime-wrapper.md)
+
+Do not import `n8n.legacy.json` as the active P2 workflow.
 
 ## Structure
 
@@ -113,5 +125,10 @@ Do not use `localhost` for container-to-container communication.
 - `openclaw-workspace/agents/` - canonical per-agent configuration files
 - `openclaw-workspace/TOOLS.md` - execution boundary and n8n Intent Gateway contract
 - `openclaw-workspace/MEMORY.md` - n8n-mediated memory and context contract
+- `openclaw-workspace/CAPABILITIES.md` - n8n-owned capability request registry
+- `openclaw-workspace/ROUTING.md` - supervisor routing matrix
+- `openclaw-workspace/VALIDATION.md` - final output validation checklist
+- `openclaw-workspace/schemas/` - strict JSON schemas for context packages, request candidates, and agent results
+- `openclaw-workspace/tests/` - P1 smoke-test input and expected-output fixtures
 - `openclaw-workspace/memory/` - daily memory files
 - `openclaw-workspace/skills/*/SKILL.md` - reusable OpenClaw skills

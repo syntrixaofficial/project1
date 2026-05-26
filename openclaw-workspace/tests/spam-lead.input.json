@@ -1,0 +1,29 @@
+{
+  "target_agent": "lead-qualification-agent",
+  "event_type": "lead_form_submission",
+  "context_package": {
+    "package_id": "pkg_lead_spam_001",
+    "source_workflow": "n8n_contact_intake",
+    "lead": {
+      "lead_id": "lead_spam_001",
+      "service_interest": "cheap traffic",
+      "message": "BUY NOW!!! guaranteed leads crypto casino backlinks"
+    },
+    "contact": {
+      "contact_id": "contact_spam_001",
+      "name": "SEO Boss",
+      "email_ref": "contact_spam_001_email"
+    },
+    "source": {
+      "channel": "website_contact_form"
+    },
+    "workflow_state": {
+      "contact_intake_complete": true
+    },
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "qualification"
+}

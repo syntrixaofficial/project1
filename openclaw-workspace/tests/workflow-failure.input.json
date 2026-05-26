@@ -1,0 +1,31 @@
+{
+  "target_agent": "health-monitoring-agent",
+  "event_type": "workflow_failure",
+  "context_package": {
+    "package_id": "pkg_health_001",
+    "source_workflow": "n8n_monitoring_collection",
+    "failure_context": {
+      "workflow_id": "wf_lead_followup",
+      "workflow_name": "Lead Followup Delivery",
+      "sanitized_error_class": "provider_timeout",
+      "retry_count": 1
+    },
+    "workflow_state": {
+      "last_status": "failed"
+    },
+    "monitoring_context": {
+      "external_provider_status": "degraded"
+    },
+    "impact_context": {
+      "business_impact": "normal_followup_delay"
+    },
+    "trace_refs": [
+      "trace_001"
+    ],
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "retry_recommendation"
+}

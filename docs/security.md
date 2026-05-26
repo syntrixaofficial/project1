@@ -29,11 +29,19 @@ env:N8N_OPENCLAW_WEBHOOK_SECRET
 env:NVIDIA_API_KEY
 env:NEMOCLAW_PROVIDER_KEY
 env:COMPATIBLE_API_KEY
+env:SYNTRA_MODEL_API_KEY
+env:LEAD_QUALIFICATION_MODEL_API_KEY
+env:RESEARCH_MODEL_API_KEY
+env:HELPDESK_MODEL_API_KEY
+env:MARKETING_SALES_MODEL_API_KEY
+env:HEALTH_MONITORING_MODEL_API_KEY
 ```
 
 The default local `COMPATIBLE_API_KEY=dummy` is not a real secret. It is used only for the local security stub.
 
 Do not paste actual API keys into OpenClaw config commands unless the command stores them as SecretRefs.
+
+Per-agent model keys are allowed only as environment-backed SecretRefs. The mapping is documented in `openclaw-workspace/agents/model-routing.md`.
 
 ## Docker Boundary
 
@@ -67,8 +75,8 @@ OpenClaw must not directly:
 Specialist agents must not directly:
 
 - read or write Postgres
+- read or write MongoDB
 - read or write Redis
-- query or write Vector DB
 - write memory files
 - store secrets in memory
 

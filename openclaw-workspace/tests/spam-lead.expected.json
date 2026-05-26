@@ -1,0 +1,18 @@
+{
+  "type": "agent_result",
+  "agent": "lead-qualification-agent",
+  "classification": "reject_spam",
+  "confidence": "medium",
+  "must_include": [
+    "lead_summary",
+    "signals",
+    "qualification",
+    "n8n_request_candidates"
+  ],
+  "expected_candidate_hint": "memory_update or workflow_request may mark sanitized spam pattern/candidate",
+  "must_not_do": [
+    "contact_lead_directly",
+    "store_raw_submission",
+    "query_database"
+  ]
+}

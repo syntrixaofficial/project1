@@ -1,0 +1,18 @@
+{
+  "type": "agent_result",
+  "agent": "health-monitoring-agent",
+  "classification": "retry_recommended",
+  "confidence": "medium",
+  "expected_fields": [
+    "severity",
+    "sanitized_summary",
+    "trace_refs",
+    "likely_owner",
+    "retry_metadata"
+  ],
+  "must_not_do": [
+    "retry_directly",
+    "inspect_logs_directly",
+    "call_docker"
+  ]
+}

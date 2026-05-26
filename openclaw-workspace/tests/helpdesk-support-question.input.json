@@ -1,0 +1,26 @@
+{
+  "target_agent": "helpdesk-agent",
+  "event_type": "service_question",
+  "context_package": {
+    "package_id": "pkg_helpdesk_001",
+    "source_workflow": "n8n_helpdesk_intake",
+    "question": {
+      "text": "Do you provide automation strategy and implementation?"
+    },
+    "identity_context": {
+      "known_user": false
+    },
+    "knowledge_context": [
+      {
+        "title": "Services",
+        "summary": "Syntrixa provides AI workflow strategy, implementation, and operational automation."
+      }
+    ],
+    "workflow_state": {},
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "answer"
+}

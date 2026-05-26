@@ -1,0 +1,42 @@
+{
+  "target_agent": "lead-qualification-agent",
+  "event_type": "lead_form_submission",
+  "context_package": {
+    "package_id": "pkg_lead_001",
+    "source_workflow": "n8n_contact_intake",
+    "lead": {
+      "lead_id": "lead_001",
+      "service_interest": "AI automation system",
+      "message": "We need an AI workflow to qualify inbound leads and route follow-ups."
+    },
+    "contact": {
+      "contact_id": "contact_001",
+      "name": "Asha Rao",
+      "email_ref": "contact_001_email"
+    },
+    "account": {
+      "account_id": "acct_001",
+      "company_name": "Rao Clinics"
+    },
+    "identity_context": {},
+    "prior_interactions": [],
+    "workflow_state": {
+      "contact_intake_complete": true,
+      "confirmation_sent": true
+    },
+    "lifecycle_state": {
+      "stage": "new_lead"
+    },
+    "consent": {
+      "can_email": true
+    },
+    "source": {
+      "channel": "website_contact_form"
+    },
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "qualification"
+}

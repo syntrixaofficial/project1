@@ -1,0 +1,27 @@
+{
+  "target_agent": "marketing-sales-agent",
+  "event_type": "campaign_review",
+  "context_package": {
+    "package_id": "pkg_marketing_001",
+    "source_workflow": "n8n_marketing_normalization",
+    "campaign_context": {
+      "campaign_id": "camp_001",
+      "channel": "email"
+    },
+    "analytics_context": {
+      "open_rate": 0.42,
+      "reply_rate": 0.08
+    },
+    "crm_context": {
+      "qualified_leads": 12
+    },
+    "workflow_state": {
+      "analysis_requested": true
+    },
+    "constraints": {
+      "minimal_context": true,
+      "no_raw_secrets": true
+    }
+  },
+  "requested_output": "analysis"
+}
