@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.nemoclaw
-    image: syntrixaofficial/project1:nemoclaw
+    image: shreeram675/project1:nemoclaw
     container_name: syntrixa-nemoclaw
     hostname: nemoclaw
     privileged: true
@@ -74,7 +74,7 @@ services:
     build:
       context: ./dashboard-api
       dockerfile: Dockerfile
-    image: syntrixaofficial/project1:dashboard-api
+    image: shreeram675/project1:dashboard-api
     container_name: syntrixa-dashboard-api
     hostname: dashboard-api
     env_file:
@@ -245,7 +245,7 @@ services:
     build:
       context: ./dashboard-ui
       dockerfile: Dockerfile
-    image: syntrixaofficial/project1:dashboard-ui
+    image: shreeram675/project1:dashboard-ui
     container_name: syntrixa-dashboard-ui
     hostname: dashboard-ui
     ports:
