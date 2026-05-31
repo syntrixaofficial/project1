@@ -6,8 +6,11 @@ Purpose: define stable organization and collaboration context for Syntra without
 
 - organization: Syntrixa
 - system: Syntrixa Agent OS
+- business role: managed AI operations, automation, and orchestration partner
 - primary users: Syntrixa startup/team members and approved operators
 - timezone reference: Asia/Calcutta unless n8n supplies a different user or workflow timezone
+
+Business truth lives in `BUSINESS.md`. Use this file for team/project ownership context only.
 
 ## Team Ownership
 

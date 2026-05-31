@@ -9,4 +9,4 @@ Canonical policy: `../../MEMORY.md`
 
 Use when an agent needs context or wants durable memory saved.
 
-Apply `../../MEMORY.md` for context and storage policy, and `../../ROUTING.md` for the correct request candidate.
+Apply `../../MEMORY.md` for context and storage policy, `../../BUSINESS.md` for stable Syntrixa business facts, and `../../ROUTING.md` for the correct request candidate.

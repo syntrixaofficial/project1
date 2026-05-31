@@ -1,7 +1,7 @@
 {
   "type": "agent_result",
   "agent": "lead-qualification-agent",
-  "classification": "continue_dialogue",
+  "classification": "deployment_candidate",
   "confidence": "medium",
   "must_include": [
     "lead_summary",
@@ -9,6 +9,10 @@
     "unknowns",
     "recommended_questions",
     "qualification",
+    "business_summary",
+    "qualification_scores",
+    "automation_assessment",
+    "orchestration_assessment",
     "n8n_request_candidates"
   ],
   "allowed_request_types": [

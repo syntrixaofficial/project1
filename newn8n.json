@@ -1,4 +1,5 @@
 {
+  "id": "syntrixa-openclaw-p2-command-workflow",
   "name": "Syntrixa OpenClaw P2 n8n Workflow Architecture",
   "nodes": [
     {
@@ -424,9 +425,18 @@
         "url": "={{ $env.OPENCLAW_AGENT_INVOKE_URL || \"http://nemoclaw:8990/openclaw/agent/invoke\" }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ context_package: $json.context_package || $json, boundary: { openclaw_external_access: false, n8n_owns_execution: true }, requested_agent: $json.target_agent || $json.agent || \"syntra-supervisor\" }) }}",
+        "jsonBody": "={{ JSON.stringify({ target_agent: $json.target_agent || $json.agent || \"syntra\", event_type: $json.event_type || $json.type || \"n8n_packaged_event\", priority: $json.priority || \"normal\", context_package: $json.context_package || $json, boundary: { openclaw_external_access: false, n8n_owns_execution: true } }) }}",
         "options": {
           "timeout": 120000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.OPENCLAW_GATEWAY_TOKEN ? \"Bearer \" + $env.OPENCLAW_GATEWAY_TOKEN : \"\" }}"
+            }
+          ]
         }
       },
       "id": "9615cdfc-79e3-acb7-c8c8-2caa621d2e5b",
@@ -466,31 +476,32 @@
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.audit_logs (request_id, workflow_name, category, requester, status, payload, created_at) VALUES (:request_id, :workflow_name, :category, :requester, :status, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.audit_logs (request_id, workflow_name, category, requester, status, payload, created_at) VALUES ($1, $2, $3, $4, $6, CAST($5 AS jsonb), NOW()) RETURNING request_id, workflow_name, category, requester, status, payload, created_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "4f04f7fa-3d1b-f782-8677-a78dfeaf2c04",
       "name": "UTIL011 Reusable Audit Trail Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         4300,
         240
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
@@ -654,27 +665,11 @@
       "parameters": {
         "operation": "insert",
         "collection": "contact_form_submissions",
-        "fieldsValues": {
-          "fields": [
-            {
-              "field": "workflow_name",
-              "value": "={{ $json.current_workflow || 'WF006 Lead Storage Workflow' }}"
-            },
-            {
-              "field": "category",
-              "value": "={{ $json.workflow_category || $json.category }}"
-            },
-            {
-              "field": "payload",
-              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
-            },
-            {
-              "field": "created_at",
-              "value": "={{ new Date().toISOString() }}"
-            }
-          ]
+        "options": {
+          "dateFields": "created_at,timestamp,response_received_at"
         },
-        "options": {}
+        "resource": "document",
+        "fields": "id,type,category,priority,requester,target_agent,workflow,purpose,current_workflow,workflow_category,workflow_step_detail,payload,body,analytics_context,crm_context,social_accounts,campaign_package,campaign_strategy,content_variants,campaign_execution_plan,approval_package,created_at,timestamp,response_received_at"
       },
       "id": "1b8e3efd-a467-890d-dda4-03ceb03605b1",
       "name": "WF006 Lead Storage Workflow",
@@ -686,8 +681,8 @@
       ],
       "credentials": {
         "mongoDb": {
-          "id": "placeholder_mongo_id",
-          "name": "MONGO_PLACEHOLDER"
+          "id": "syntrixa-mongodb-credentials",
+          "name": "SYNTRIXA_MONGODB"
         }
       }
     },
@@ -719,31 +714,32 @@
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.workflow_state WHERE request_id = :request_id; -- plus identity/consent/lead context views owned by n8n",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.workflow_state WHERE request_id = $1), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "4177895a-31ce-044e-7774-81e4e84fe820",
       "name": "WF009 Lead Qualification Context Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2180,
         -380
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
@@ -889,27 +885,11 @@
       "parameters": {
         "operation": "insert",
         "collection": "research_reports",
-        "fieldsValues": {
-          "fields": [
-            {
-              "field": "workflow_name",
-              "value": "={{ $json.current_workflow || 'WF015 Research Report Storage Workflow' }}"
-            },
-            {
-              "field": "category",
-              "value": "={{ $json.workflow_category || $json.category }}"
-            },
-            {
-              "field": "payload",
-              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
-            },
-            {
-              "field": "created_at",
-              "value": "={{ new Date().toISOString() }}"
-            }
-          ]
+        "options": {
+          "dateFields": "created_at,timestamp,response_received_at"
         },
-        "options": {}
+        "resource": "document",
+        "fields": "id,type,category,priority,requester,target_agent,workflow,purpose,current_workflow,workflow_category,workflow_step_detail,payload,body,analytics_context,crm_context,social_accounts,campaign_package,campaign_strategy,content_variants,campaign_execution_plan,approval_package,created_at,timestamp,response_received_at"
       },
       "id": "5c1e47db-faef-028b-d17a-43851b83885f",
       "name": "WF015 Research Report Storage Workflow",
@@ -921,8 +901,8 @@
       ],
       "credentials": {
         "mongoDb": {
-          "id": "placeholder_mongo_id",
-          "name": "MONGO_PLACEHOLDER"
+          "id": "syntrixa-mongodb-credentials",
+          "name": "SYNTRIXA_MONGODB"
         }
       }
     },
@@ -967,91 +947,94 @@
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.identity_context WHERE request_id = :request_id; -- n8n owned identity lookup",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.identity_context WHERE request_id = $1), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "2b62547b-6209-c099-6317-8d212a2532ae",
       "name": "WF019 Identity Context Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1660,
         60
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.workflow_state WHERE request_id = :request_id; -- prior conversation context",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.workflow_state WHERE request_id = $1), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "3f6a6baa-7621-cec4-c30e-d8f1211fb9b0",
       "name": "WF020 Conversation Context Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1920,
         60
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.knowledge_index WHERE category = :category LIMIT 20;",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT jsonb_agg(payload) FROM public.knowledge_index WHERE category = $3), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "971709d4-76ca-d40c-3c73-86440941c339",
       "name": "WF021 Knowledge Base Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2180,
         60
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
@@ -1090,7 +1073,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Campaign Data Aggregation Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF024 Campaign Data Aggregation Workflow\",\n    workflow_category: \"marketing\",\n    workflow_step_detail: \"Normalize analytics, CRM, campaign, and sales signal packages.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+        "jsCode": "// Campaign Data Aggregation Workflow\nreturn items.map((item) => {\n  const j = item.json;\n  const analytics = j.analytics_context || {};\n  const crm = j.crm_context || {};\n  const social = j.social_accounts || {};\n  const metrics = Array.isArray(analytics.metrics) ? analytics.metrics : [];\n  const strongestChannel = metrics.slice().sort((a, b) => (b.leads || 0) - (a.leads || 0))[0]?.channel || \"linkedin\";\n  const audience = analytics.audience_segments?.[0] || \"small businesses with fragmented operations\";\n  return {\n    json: {\n      ...j,\n      current_workflow: \"WF024 Campaign Data Aggregation Workflow\",\n      workflow_category: \"marketing\",\n      workflow_step_detail: \"Normalize analytics, CRM, social readiness, and campaign inputs into a campaign planning package.\",\n      target_agent: j.target_agent || \"marketing-sales-agent\",\n      event_type: j.event_type || \"campaign_review\",\n      campaign_package: {\n        campaign_id: analytics.campaign_id || j.campaign_id || j.id,\n        strongest_channel: strongestChannel,\n        audience,\n        intent_signals: crm.intent_signals || [],\n        objections: crm.objections || [],\n        social_accounts: social,\n        metrics,\n      },\n      n8n_owns_execution: true,\n      openclaw_external_access: false,\n    },\n  };\n});"
       },
       "id": "8ee929b0-7341-8af7-5b77-5a666a5ff793",
       "name": "WF024 Campaign Data Aggregation Workflow",
@@ -1104,28 +1087,12 @@
     {
       "parameters": {
         "operation": "insert",
-        "collection": "marketing_performance_metrics",
-        "fieldsValues": {
-          "fields": [
-            {
-              "field": "workflow_name",
-              "value": "={{ $json.current_workflow || 'WF025 Performance Metrics Storage Workflow' }}"
-            },
-            {
-              "field": "category",
-              "value": "={{ $json.workflow_category || $json.category }}"
-            },
-            {
-              "field": "payload",
-              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
-            },
-            {
-              "field": "created_at",
-              "value": "={{ new Date().toISOString() }}"
-            }
-          ]
+        "collection": "performance_metrics",
+        "options": {
+          "dateFields": "created_at,timestamp,response_received_at"
         },
-        "options": {}
+        "resource": "document",
+        "fields": "id,type,category,priority,requester,target_agent,workflow,purpose,current_workflow,workflow_category,workflow_step_detail,payload,body,analytics_context,crm_context,social_accounts,campaign_package,campaign_strategy,content_variants,campaign_execution_plan,approval_package,created_at,timestamp,response_received_at"
       },
       "id": "2cbff98c-a96b-51b7-995d-92f40da1f938",
       "name": "WF025 Performance Metrics Storage Workflow",
@@ -1137,14 +1104,14 @@
       ],
       "credentials": {
         "mongoDb": {
-          "id": "placeholder_mongo_id",
-          "name": "MONGO_PLACEHOLDER"
+          "id": "syntrixa-mongodb-credentials",
+          "name": "SYNTRIXA_MONGODB"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Marketing Intelligence Trigger Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF026 Marketing Intelligence Trigger Workflow\",\n    workflow_category: \"marketing\",\n    workflow_step_detail: \"Trigger marketing-sales-agent reasoning.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+        "jsCode": "// Marketing Intelligence Trigger Workflow\nreturn items.map((item) => {\n  const j = item.json;\n  const campaign = j.campaign_package || {};\n  const angles = [\n    \"turn disconnected manual work into managed AI operations\",\n    \"ship safer automations with human approval gates\",\n    \"connect support, sales, inventory, and reporting workflows\",\n  ];\n  const variants = angles.map((angle, index) => ({\n    id: `${j.id || $execution.id}-variant-${index + 1}`,\n    channel: index === 0 ? campaign.strongest_channel || \"linkedin\" : index === 1 ? \"email\" : \"website\",\n    hook: angle,\n    draft: `Syntrixa helps ${campaign.audience || \"small teams\"} ${angle}. Book an AI operations audit to map the next workflow.`,\n    status: \"staged_for_review\",\n  }));\n  return {\n    json: {\n      ...j,\n      current_workflow: \"WF026 Marketing Intelligence Trigger Workflow\",\n      workflow_category: \"marketing\",\n      workflow_step_detail: \"Generate channel strategy, content variants, and OpenClaw marketing reasoning context.\",\n      target_agent: \"marketing-sales-agent\",\n      event_type: \"campaign_review\",\n      campaign_strategy: {\n        objective: j.payload?.objective || \"generate qualified Syntrixa audit conversations\",\n        audience: campaign.audience,\n        primary_channel: campaign.strongest_channel || \"linkedin\",\n        angles,\n        required_human_approval: true,\n      },\n      content_variants: variants,\n      context_package: {\n        package_id: j.id || $execution.id,\n        source_workflow: \"WF026 Marketing Intelligence Trigger Workflow\",\n        subject_refs: { campaign_id: campaign.campaign_id || j.id },\n        constraints: { minimal_context: true, no_raw_secrets: true },\n        analytics_context: j.analytics_context,\n        crm_context: j.crm_context,\n        campaign_strategy: {\n          objective: j.payload?.objective || \"generate qualified Syntrixa audit conversations\",\n          primary_channel: campaign.strongest_channel || \"linkedin\",\n        },\n      },\n      n8n_owns_execution: true,\n      openclaw_external_access: false,\n    },\n  };\n});"
       },
       "id": "d7d9b563-141f-19e9-2635-31e53cdc6579",
       "name": "WF026 Marketing Intelligence Trigger Workflow",
@@ -1157,7 +1124,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Campaign Proposal Execution Workflow\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF027 Campaign Proposal Execution Workflow\",\n    workflow_category: \"marketing\",\n    workflow_step_detail: \"Stage campaign proposal only after approval; n8n executes approved changes.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+        "jsCode": "// Campaign Proposal Execution Workflow\nreturn items.map((item) => {\n  const j = item.json;\n  const social = j.campaign_package?.social_accounts || {};\n  const connectorState = Object.fromEntries(Object.entries(social).map(([channel, value]) => [\n    channel,\n    {\n      connected: Boolean(value?.connected),\n      action: value?.connected ? value.action : \"stage_only_until_credentials_connected\",\n    },\n  ]));\n  return {\n    json: {\n      ...j,\n      current_workflow: \"WF027 Campaign Proposal Execution Workflow\",\n      workflow_category: \"marketing\",\n      workflow_step_detail: \"Stage approved campaign execution actions for social, email, and website channels.\",\n      campaign_execution_plan: {\n        approval_required: true,\n        execution_mode: Object.values(connectorState).some((item) => item.connected) ? \"credential_ready_staging\" : \"local_staging_only\",\n        connectorState,\n        content_variants: j.content_variants || [],\n        next_steps: [\n          \"Human approves or edits content variants\",\n          \"n8n maps approved variants to connected social/email credentials\",\n          \"n8n writes sales signal and campaign audit records\",\n        ],\n      },\n      n8n_owns_execution: true,\n      openclaw_external_access: false,\n    },\n  };\n});"
       },
       "id": "59c07a81-efcc-8617-5f9b-d3df76ce9478",
       "name": "WF027 Campaign Proposal Execution Workflow",
@@ -1172,27 +1139,11 @@
       "parameters": {
         "operation": "insert",
         "collection": "sales_signals",
-        "fieldsValues": {
-          "fields": [
-            {
-              "field": "workflow_name",
-              "value": "={{ $json.current_workflow || 'WF028 Sales Signal Tracking Workflow' }}"
-            },
-            {
-              "field": "category",
-              "value": "={{ $json.workflow_category || $json.category }}"
-            },
-            {
-              "field": "payload",
-              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
-            },
-            {
-              "field": "created_at",
-              "value": "={{ new Date().toISOString() }}"
-            }
-          ]
+        "options": {
+          "dateFields": "created_at,timestamp,response_received_at"
         },
-        "options": {}
+        "resource": "document",
+        "fields": "id,type,category,priority,requester,target_agent,workflow,purpose,current_workflow,workflow_category,workflow_step_detail,payload,body,analytics_context,crm_context,social_accounts,campaign_package,campaign_strategy,content_variants,campaign_execution_plan,approval_package,created_at,timestamp,response_received_at"
       },
       "id": "3b6e04f9-82e5-3bb8-7842-80dabda064db",
       "name": "WF028 Sales Signal Tracking Workflow",
@@ -1204,14 +1155,14 @@
       ],
       "credentials": {
         "mongoDb": {
-          "id": "placeholder_mongo_id",
-          "name": "MONGO_PLACEHOLDER"
+          "id": "syntrixa-mongodb-credentials",
+          "name": "SYNTRIXA_MONGODB"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Supervisor Approval Workflow (marketing changes)\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF029 Supervisor Approval Workflow (marketing changes)\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Human/supervisor approval gate for campaign mutation.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+        "jsCode": "// Supervisor Approval Workflow (marketing changes)\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF029 Supervisor Approval Workflow (marketing changes)\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Create human approval package for campaign mutations and outbound content.\",\n    type: \"human_intervention\",\n    priority: item.json.priority || \"normal\",\n    decision_needed: \"Approve, edit, or reject staged campaign content before external publishing.\",\n    approval_package: {\n      risk_level: \"Medium\",\n      campaign_strategy: item.json.campaign_strategy,\n      content_variants: item.json.content_variants || [],\n      connector_state: item.json.campaign_execution_plan?.connectorState || item.json.campaign_package?.social_accounts || {},\n    },\n    n8n_owns_execution: true,\n    openclaw_external_access: false,\n  },\n}));"
       },
       "id": "2172ad14-e55f-c21d-64cc-0591e25327d9",
       "name": "WF029 Supervisor Approval Workflow (marketing changes)",
@@ -1257,11 +1208,7 @@
     },
     {
       "parameters": {
-        "method": "POST",
         "url": "={{ $env.API_HEALTH_URL || \"http://n8n:5678/healthz\" }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ check: \"api\", request_id: $json.id || $execution.id }) }}",
         "options": {
           "timeout": 120000
         }
@@ -1349,26 +1296,16 @@
     },
     {
       "parameters": {
-        "fromEmail": "={{ $env.SYNTRIXA_FROM_EMAIL || \"agents@syntrixa.internal\" }}",
-        "toEmail": "={{ $json.recipient || $json.payload?.recipient_ref || \"ops@syntrixa.internal\" }}",
-        "subject": "={{ $json.subject || $json.payload?.subject || \"Syntrixa OpenClaw Notification\" }}",
-        "html": "={{ $json.body || $json.payload?.body || JSON.stringify($json.payload || $json) }}",
-        "options": {}
+        "jsCode": "// Critical Security Alert Workflow\n// SMTP delivery is intentionally stubbed until real credentials are connected.\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF038 Critical Security Alert Workflow\",\n    workflow_category: \"escalation\",\n    workflow_step_detail: \"Prepare critical security alert for operator delivery.\",\n    notification_channel: \"email\",\n    recipient: item.json.recipient || item.json.payload?.recipient_ref || \"ops@syntrixa.internal\",\n    subject: item.json.subject || item.json.payload?.subject || \"Syntrixa OpenClaw Notification\",\n    message: item.json.body || item.json.payload?.body || JSON.stringify(item.json.payload || item.json),\n    delivery_stub: true,\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
       },
       "id": "be8e954b-d183-ba7b-f833-77fa7bad8ae9",
       "name": "WF038 Critical Security Alert Workflow",
-      "type": "n8n-nodes-base.email",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         2200,
         620
-      ],
-      "credentials": {
-        "smtp": {
-          "id": "placeholder_smtp_id",
-          "name": "SMTP_PLACEHOLDER"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -1544,26 +1481,16 @@
     },
     {
       "parameters": {
-        "fromEmail": "={{ $env.SYNTRIXA_FROM_EMAIL || \"agents@syntrixa.internal\" }}",
-        "toEmail": "={{ $json.recipient || $json.payload?.recipient_ref || \"ops@syntrixa.internal\" }}",
-        "subject": "={{ $json.subject || $json.payload?.subject || \"Syntrixa OpenClaw Notification\" }}",
-        "html": "={{ $json.body || $json.payload?.body || JSON.stringify($json.payload || $json) }}",
-        "options": {}
+        "jsCode": "// Email Delivery Workflow\n// Replace this stub with an SMTP/SendGrid/Resend node after production credentials exist.\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF041 Email Delivery Workflow\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Prepare outbound email notification.\",\n    notification_channel: \"email\",\n    recipient: item.json.recipient || item.json.payload?.recipient_ref || \"ops@syntrixa.internal\",\n    subject: item.json.subject || item.json.payload?.subject || \"Syntrixa OpenClaw Notification\",\n    message: item.json.body || item.json.payload?.body || JSON.stringify(item.json.payload || item.json),\n    delivery_stub: true,\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
       },
       "id": "2111ee11-5e62-241a-7892-1b8db14c9d82",
       "name": "WF041 Email Delivery Workflow",
-      "type": "n8n-nodes-base.email",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         1920,
         760
-      ],
-      "credentials": {
-        "smtp": {
-          "id": "placeholder_smtp_id",
-          "name": "SMTP_PLACEHOLDER"
-        }
-      }
+      ]
     },
     {
       "parameters": {
@@ -1580,12 +1507,28 @@
     },
     {
       "parameters": {
-        "jsCode": "// Dashboard Notification Workflow (future)\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    current_workflow: \"WF043 Dashboard Notification Workflow (future)\",\n    workflow_category: \"communication\",\n    workflow_step_detail: \"Future dashboard notification adapter; currently audited/staged.\",\n    n8n_owns_execution: true,\n    openclaw_external_access: false\n  }\n}));"
+        "method": "POST",
+        "url": "={{ $env.DASHBOARD_API_EVENT_URL || \"http://dashboard-api:8080/api/n8n/events\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ agent: $json.agent || $json.requester?.id || \"n8n\", message: $json.message || $json.summary || $json.workflow_step_detail || \"n8n published dashboard event\", tone: $json.tone || \"cyan\", source_workflow: $workflow.name, execution_id: $execution.id, candidate_type: $json.type, category: $json.category, status: $json.status || \"published\" }) }}",
+        "options": {
+          "timeout": 30000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Syntrixa-Dashboard-Token",
+              "value": "={{ $env.DASHBOARD_INGEST_TOKEN || \"\" }}"
+            }
+          ]
+        }
       },
       "id": "88c32062-3429-d6d4-2ed7-f2e943fa79e7",
-      "name": "WF043 Dashboard Notification Workflow (future)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "name": "WF043 Dashboard Notification Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
       "position": [
         1920,
         960
@@ -1619,271 +1562,280 @@
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.working_memory WHERE request_id = :request_id UNION ALL SELECT * FROM public.shared_memory WHERE category = :category;",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.working_memory WHERE request_id = $1), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "bd775178-299c-6325-abbf-64d16a8fe950",
       "name": "WF046 Memory Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1400,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.working_memory (request_id, payload, updated_at) VALUES (:request_id, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.working_memory (request_id, category, payload, updated_at) VALUES ($1, $3, CAST($5 AS jsonb), NOW()) ON CONFLICT (request_id) DO UPDATE SET category = EXCLUDED.category, payload = EXCLUDED.payload, updated_at = NOW() RETURNING request_id, category, payload, updated_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "1d1a48cf-dc35-76c0-c95b-4e20d2b43bd4",
       "name": "WF047 Working Memory Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1660,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.long_memory (request_id, category, payload, created_at) VALUES (:request_id, :category, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.long_memory (request_id, category, payload, created_at) VALUES ($1, $3, CAST($5 AS jsonb), NOW()) RETURNING request_id, category, payload, created_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "b9f84892-57f7-643f-925c-7675687ac62b",
       "name": "WF048 Long Memory Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1920,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.private_memory WHERE requester = :requester;",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.private_memory WHERE request_id = $1), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "625bf4f6-b078-5014-0477-1ef8efa00c3f",
       "name": "WF049 Private Memory Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2180,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.private_memory (requester, payload, created_at) VALUES (:requester, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.private_memory (request_id, category, payload, updated_at) VALUES ($1, $3, CAST($5 AS jsonb), NOW()) ON CONFLICT (request_id) DO UPDATE SET category = EXCLUDED.category, payload = EXCLUDED.payload, updated_at = NOW() RETURNING request_id, category, payload, updated_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "cd7ca6c7-673b-f097-14ea-64204f030107",
       "name": "WF050 Private Memory Update Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2440,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.shared_memory WHERE category = :category;",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.shared_memory WHERE category = $3), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "f9c95b40-5529-eda7-9c35-e92fc107dab5",
       "name": "WF051 Shared Memory Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2700,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.shared_memory (category, payload, created_at) VALUES (:category, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.shared_memory (category, payload, updated_at) VALUES ($3, CAST($5 AS jsonb), NOW()) ON CONFLICT (category) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW() RETURNING category, payload, updated_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "422606e1-f72f-098e-ba7d-93a471d14a91",
       "name": "WF052 Shared Memory Update Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2960,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.identity_context WHERE request_id = :request_id;",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.identity_context WHERE request_id = $1), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "3e0837b7-4e66-5794-7468-f4a7de31a5e0",
       "name": "WF053 Identity Context Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         3220,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.knowledge_index WHERE category = :category LIMIT 20;",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT jsonb_agg(payload) FROM public.knowledge_index WHERE category = $3), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "823e97dc-3fc6-5708-67a5-f2f5c0643a2b",
       "name": "WF054 Knowledge Base Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         3480,
         1220
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
@@ -1902,91 +1854,94 @@
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.workflow_state WHERE request_id = :request_id;",
+        "query": "SELECT $1 AS request_id, $2 AS workflow_name, COALESCE((SELECT payload FROM public.workflow_state WHERE request_id = $1), CAST($5 AS jsonb)) AS payload;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "b4fb641b-b385-041e-d309-05d6c1a02abc",
       "name": "WF056 Workflow State Retrieval Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1400,
         1540
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.lifecycle_state (request_id, workflow_name, payload, updated_at) VALUES (:request_id, :workflow_name, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.lifecycle_state (request_id, workflow_name, payload, updated_at) VALUES ($1, $2, CAST($5 AS jsonb), NOW()) ON CONFLICT (request_id) DO UPDATE SET workflow_name = EXCLUDED.workflow_name, payload = EXCLUDED.payload, updated_at = NOW() RETURNING request_id, workflow_name, payload, updated_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "3b3f5ac8-54be-b8fd-d662-f9646b7486f4",
       "name": "WF057 Lifecycle State Management Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1660,
         1540
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.agent_handoffs (request_id, requester, payload, created_at) VALUES (:request_id, :requester, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.agent_handoffs (request_id, requester, payload, created_at) VALUES ($1, $4, CAST($5 AS jsonb), NOW()) RETURNING request_id, requester, payload, created_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "c7f2bfba-0d68-da58-35d8-ae8023ea688e",
       "name": "WF058 Inter-Agent Handoff Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         1920,
         1540
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
@@ -2033,27 +1988,11 @@
       "parameters": {
         "operation": "insert",
         "collection": "n8n_operational_documents",
-        "fieldsValues": {
-          "fields": [
-            {
-              "field": "workflow_name",
-              "value": "={{ $json.current_workflow || 'WF062 MongoDB Access Workflow' }}"
-            },
-            {
-              "field": "category",
-              "value": "={{ $json.workflow_category || $json.category }}"
-            },
-            {
-              "field": "payload",
-              "value": "={{ JSON.stringify($json.payload || $json.body || $json) }}"
-            },
-            {
-              "field": "created_at",
-              "value": "={{ new Date().toISOString() }}"
-            }
-          ]
+        "options": {
+          "dateFields": "created_at,timestamp,response_received_at"
         },
-        "options": {}
+        "resource": "document",
+        "fields": "id,type,category,priority,requester,target_agent,workflow,purpose,current_workflow,workflow_category,workflow_step_detail,payload,body,analytics_context,crm_context,social_accounts,campaign_package,campaign_strategy,content_variants,campaign_execution_plan,approval_package,created_at,timestamp,response_received_at"
       },
       "id": "221c053d-59c5-04af-8f1c-d5e5c7ee4eaa",
       "name": "WF062 MongoDB Access Workflow",
@@ -2065,8 +2004,8 @@
       ],
       "credentials": {
         "mongoDb": {
-          "id": "placeholder_mongo_id",
-          "name": "MONGO_PLACEHOLDER"
+          "id": "syntrixa-mongodb-credentials",
+          "name": "SYNTRIXA_MONGODB"
         }
       }
     },
@@ -2125,91 +2064,94 @@
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.observability_events (request_id, category, payload, created_at) VALUES (:request_id, :category, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.observability_events (request_id, category, payload, created_at) VALUES ($1, $3, CAST($5 AS jsonb), NOW()) RETURNING request_id, category, payload, created_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "7115d9f7-79fc-afb2-0cc9-e8b3dcd2e049",
       "name": "WF066 Observability Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2440,
         1840
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.workflow_logs (request_id, workflow_name, status, payload, created_at) VALUES (:request_id, :workflow_name, :status, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.workflow_logs (request_id, workflow_name, status, payload, created_at) VALUES ($1, $2, $6, CAST($5 AS jsonb), NOW()) RETURNING request_id, workflow_name, status, payload, created_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "b8a2955b-5c0f-17db-1be8-684f55d1c5f9",
       "name": "WF067 Logging Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2700,
         1840
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
     {
       "parameters": {
+        "resource": "database",
         "operation": "executeQuery",
-        "query": "INSERT INTO public.audit_logs (request_id, workflow_name, category, requester, status, payload, created_at) VALUES (:request_id, :workflow_name, :category, :requester, :status, CAST(:payload AS jsonb), NOW());",
+        "query": "INSERT INTO public.audit_logs (request_id, workflow_name, category, requester, status, payload, created_at) VALUES ($1, $2, $3, $4, $6, CAST($5 AS jsonb), NOW()) RETURNING request_id, workflow_name, category, requester, status, payload, created_at;",
         "options": {
-          "placeholderValues": {
-            "request_id": "={{ $json.id || $json.body?.id || $execution.id }}",
-            "category": "={{ $json.category || $json.workflow_category || \"unknown\" }}",
-            "requester": "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
-            "payload": "={{ JSON.stringify($json.payload || $json.body || $json) }}",
-            "workflow_name": "={{ $json.current_workflow || $workflow.name }}",
-            "status": "={{ $json.status || \"INFO\" }}"
-          }
+          "queryReplacement": [
+            "={{ $json.id || $json.body?.id || $execution.id }}",
+            "={{ $json.current_workflow || $workflow.name }}",
+            "={{ $json.category || $json.workflow_category || \"unknown\" }}",
+            "={{ $json.requester || $json.body?.requester || \"n8n\" }}",
+            "={{ JSON.stringify($json.payload || $json.body || $json) }}",
+            "={{ $json.status || \"INFO\" }}"
+          ]
         }
       },
       "id": "5a6e2040-80db-913a-17ac-5bd478d73b9a",
       "name": "WF068 Audit Trail Workflow",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
+      "typeVersion": 2.6,
       "position": [
         2960,
         1840
       ],
       "credentials": {
         "postgres": {
-          "id": "placeholder_postgres_id",
-          "name": "POSTGRES_PLACEHOLDER"
+          "id": "syntrixa-postgres-credentials",
+          "name": "SYNTRIXA_POSTGRES"
         }
       }
     },
@@ -2276,6 +2218,35 @@
       "position": [
         380,
         2420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DASHBOARD_API_CANDIDATE_URL || \"http://dashboard-api:8080/api/n8n/request-candidates\" }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ items: $json.result?.n8n_request_candidates || $json.n8n_request_candidates || [], source_agent_result: { agent: $json.result?.agent || $json.agent, event_type: $json.result?.event_type || $json.event_type, classification: $json.result?.classification || $json.classification, confidence: $json.result?.confidence || $json.confidence }, execution_id: $execution.id, workflow: $workflow.name }) }}",
+        "options": {
+          "timeout": 30000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Syntrixa-Dashboard-Token",
+              "value": "={{ $env.DASHBOARD_INGEST_TOKEN || \"\" }}"
+            }
+          ]
+        }
+      },
+      "id": "dashboard-candidate-publish-p3",
+      "name": "UTIL013 Dashboard Candidate Publish Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        4300,
+        520
       ]
     }
   ],
@@ -2398,6 +2369,11 @@
           },
           {
             "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "UTIL013 Dashboard Candidate Publish Workflow",
             "type": "main",
             "index": 0
           }
@@ -2932,7 +2908,7 @@
         ],
         [
           {
-            "node": "WF043 Dashboard Notification Workflow (future)",
+            "node": "WF043 Dashboard Notification Workflow",
             "type": "main",
             "index": 0
           }
@@ -2979,17 +2955,6 @@
       ]
     },
     "WF042 Desktop Notification Workflow": {
-      "main": [
-        [
-          {
-            "node": "UTIL011 Reusable Audit Trail Workflow",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "WF043 Dashboard Notification Workflow (future)": {
       "main": [
         [
           {
@@ -3382,6 +3347,17 @@
           }
         ]
       ]
+    },
+    "WF043 Dashboard Notification Workflow": {
+      "main": [
+        [
+          {
+            "node": "UTIL011 Reusable Audit Trail Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -3411,6 +3387,13 @@
     "instanceId": "syntrixa-openclaw-p2",
     "generatedBy": "Codex",
     "sourceContract": "openclaw-workspace/TOOLS.md + MEMORY.md + ROUTING.md",
-    "generatedAt": "2026-05-26T17:18:53.206Z"
+    "generatedAt": "2026-05-26T17:18:53.206Z",
+    "dashboardApiContract": "dashboard-api:/api/n8n/events + /api/n8n/request-candidates",
+    "updatedAt": "2026-05-30T16:49:17.938Z",
+    "dashboardAuthHeaders": "OPENCLAW_GATEWAY_TOKEN + DASHBOARD_INGEST_TOKEN",
+    "databaseRuntime": "postgres:5432 + mongodb:27017",
+    "databaseCredentials": "SYNTRIXA_POSTGRES + SYNTRIXA_MONGODB",
+    "marketingRuntime": "local analytics/social staging with approval gates; live publishing waits for real credentials",
+    "mongoInsertShape": "n8n MongoDB insert uses comma-separated fields from item JSON"
   }
 }

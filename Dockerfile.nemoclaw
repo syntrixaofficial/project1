@@ -5,6 +5,7 @@ ENV NEMOCLAW_GATEWAY_BIND_ADDRESS=0.0.0.0
 ENV NEMOCLAW_GATEWAY_PORT=8990
 ENV NEMOCLAW_DASHBOARD_BIND=0.0.0.0
 ENV NEMOCLAW_DASHBOARD_PORT=18789
+ENV MOCK_INFERENCE_HOST=127.0.0.1
 ENV NEMOCLAW_POLICY_TIER=restricted
 ENV NEMOCLAW_SANDBOX_NAME=syntrixa-openclaw
 ENV NEMOCLAW_SANDBOX_GPU=0
@@ -37,12 +38,13 @@ RUN git init --quiet /opt/nemoclaw \
 
 WORKDIR /workspace/openclaw-workspace
 
+COPY openclaw-workspace/ /workspace/openclaw-workspace/
 COPY docker-entrypoint.nemoclaw.sh /usr/local/bin/docker-entrypoint.nemoclaw.sh
 COPY mock-inference-server.mjs /usr/local/bin/mock-inference-server.mjs
 COPY agent-invoke-server.mjs /usr/local/bin/agent-invoke-server.mjs
 RUN chmod +x /usr/local/bin/docker-entrypoint.nemoclaw.sh
 
-EXPOSE 18789 8990 8000 11434 11435
+EXPOSE 18789 8990
 
 ENTRYPOINT ["docker-entrypoint.nemoclaw.sh"]
 CMD ["sleep", "infinity"]

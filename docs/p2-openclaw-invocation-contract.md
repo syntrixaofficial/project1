@@ -16,6 +16,12 @@ Environment override used by `newn8n.json`:
 OPENCLAW_AGENT_INVOKE_URL
 ```
 
+Current fallback in `newn8n.json`:
+
+```text
+http://nemoclaw:8990/openclaw/agent/invoke
+```
+
 Health check:
 
 ```text
@@ -112,3 +118,14 @@ Recommended n8n handling:
 ## Current Runtime Status
 
 `agent-invoke-server.mjs` is a contract adapter. It gives P2 a stable endpoint now and keeps the same response shape that the real OpenClaw reasoning backend must return later.
+
+## Dashboard Publication
+
+The n8n workflow now publishes dashboard-safe telemetry to the custom dashboard backend:
+
+```text
+DASHBOARD_API_EVENT_URL=http://dashboard-api:8080/api/n8n/events
+DASHBOARD_API_CANDIDATE_URL=http://dashboard-api:8080/api/n8n/request-candidates
+```
+
+These endpoints receive sanitized events and request candidates only. They do not grant the dashboard direct execution ownership.

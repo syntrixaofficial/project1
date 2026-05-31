@@ -7,6 +7,12 @@
     "type": "handoff",
     "target_agent": "helpdesk-agent"
   },
+  "must_include": [
+    "role_context",
+    "business_context",
+    "handoff",
+    "n8n_request_candidates"
+  ],
   "must_not_do": [
     "answer_helpdesk_question_directly",
     "trigger_helpdesk_directly"

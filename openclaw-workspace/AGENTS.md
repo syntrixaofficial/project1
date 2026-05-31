@@ -13,6 +13,7 @@ Runtime flow:
 Workspace manifest:
 - `IDENTITY.md` - Syntra identity and supervisor posture
 - `USER.md` - Syntrixa team and collaboration context
+- `BUSINESS.md` - Syntrixa business model, offer, audit meaning, target customers, and positioning
 - `HEARTBEAT.md` - intentionally empty; n8n owns scheduled triggers
 - `SOUL.md` - supervisor identity, rules, and config load order
 - `TOOLS.md` - execution contract and gateway contract

@@ -25,6 +25,7 @@ They are not containers.
 
 - `TOOLS.md` - execution boundary
 - `MEMORY.md` - context and memory boundary
+- `BUSINESS.md` - stable Syntrixa business model and offer context
 - `ROUTING.md` - context request, handoff, memory update, and escalation decisions
 - `VALIDATION.md` - final output guardrails
 - `agents/syntra-supervisor.md` - supervisor implementation behavior

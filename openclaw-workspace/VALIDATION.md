@@ -43,9 +43,22 @@ Do not invent:
 - public intelligence
 - analytics
 - service policies
+- pricing, package entitlements, implementation scope, timelines, or contract terms
+- audit outputs beyond supplied or approved context
 - campaign metrics
 - infrastructure facts
 - prior interactions
+
+## Business Context Rules
+
+Use `BUSINESS.md` as the canonical business context for Syntrixa.
+
+Reject or revise output if it:
+- frames Syntrixa as a rigid SaaS platform, template marketplace, generic chatbot shop, or one-time-only agency
+- treats an audit request as generic contact intake without evaluating operations, workflows, systems, processes, and automation opportunities
+- promises implementation after audit without contract context
+- promises fixed pricing, monthly coverage, scope, timeline, or entitlement without approved context
+- ignores managed monthly operations when the supplied context clearly concerns monitoring, maintenance, optimization, support, or modifications
 
 ## Memory Rules
 

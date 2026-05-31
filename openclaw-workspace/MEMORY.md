@@ -46,6 +46,12 @@ If memory should be stored, OpenClaw emits `memory_update` with scope, content, 
 
 n8n validates, stores, isolates, indexes, and retrieves later.
 
+## Business Memory
+
+Stable Syntrixa business facts live in `BUSINESS.md`.
+
+Do not duplicate the full business brief in daily memory. Use `memory_update` only for durable, sanitized learnings from real interactions, such as approved qualification criteria, recurring automation-fit signals, support policy refinements, account summaries, or campaign learnings.
+
 ## Private Memory
 
 OpenClaw may designate ownership, but n8n enforces isolation.

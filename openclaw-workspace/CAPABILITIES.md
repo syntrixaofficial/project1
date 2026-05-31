@@ -30,15 +30,15 @@ The current P2 contract requires `version: 1.0`.
 
 ## Agent Capabilities
 
-Lead Qualification: lead/contact context, prior interaction context, identity/consent context, follow-up delivery, lead updates, spam marking, handoff, sanitized memory.
+Lead Qualification: lead/contact context, audit/consultation context, business fit scoring, automation opportunity assessment, orchestration suitability, prior interaction context, identity/consent context, follow-up delivery, lead updates, spam marking, handoff, sanitized memory.
 
-Research: public intelligence package, website/account summary, signal mapping, opportunity/risk context, stored lead/account context, report storage/delivery, handoff, sanitized memory.
+Research: public intelligence package, website/account summary, operational signal mapping, opportunity/risk context, automation maturity indicators, stored lead/account context, report storage/delivery, handoff, sanitized memory.
 
-Helpdesk: service/FAQ context, identity/account context, prior support context, ticket/workflow update, response drafts, escalation, handoff, sanitized memory.
+Helpdesk: service/FAQ context, audit meaning, managed monthly operations policy context, pricing/scope policy context, identity/account context, prior support context, ticket/workflow update, response drafts, escalation, handoff, sanitized memory.
 
-Marketing & Sales: analytics/package context, campaign/channel references, audience/segment context, CRM sales signals, messaging context, action proposals, handoff, sanitized memory.
+Marketing & Sales: analytics/package context, campaign/channel references, audience/segment context, CRM sales signals, positioning for managed AI operations, messaging context, action proposals, handoff, sanitized memory.
 
-Health Monitoring: failure/incident package, API status, infra/container health, execution health, retry evaluation, corrective action recommendation, escalation, sanitized memory.
+Health Monitoring: failure/incident package, managed operations impact context, API status, infra/container health, execution health, retry evaluation, corrective action recommendation, escalation, sanitized memory.
 
 ## Communication
 

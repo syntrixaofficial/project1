@@ -34,9 +34,13 @@
         {
           "properties": {
             "agent": { "const": "lead-qualification-agent" },
-            "classification": { "enum": ["reject_spam", "needs_more_info", "continue_dialogue", "qualified_candidate", "handoff_ready", "escalate"] },
+            "classification": { "enum": ["reject_spam", "needs_more_info", "continue_dialogue", "qualified_candidate", "audit_candidate", "deployment_candidate", "handoff_ready", "escalate"] },
             "lead_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+            "business_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
             "recommended_questions": { "$ref": "common.schema.json#/$defs/string_list" },
+            "qualification_scores": { "$ref": "common.schema.json#/$defs/open_object" },
+            "automation_assessment": { "$ref": "common.schema.json#/$defs/open_object" },
+            "orchestration_assessment": { "$ref": "common.schema.json#/$defs/open_object" },
             "qualification": { "$ref": "common.schema.json#/$defs/open_object" }
           }
         }

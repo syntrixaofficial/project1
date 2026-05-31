@@ -4,9 +4,12 @@
   "classification": "recommendation_ready",
   "confidence": "medium",
   "must_include": [
+    "role_context",
+    "business_context",
     "observed_signals",
     "inferred_signals",
     "recommendations",
+    "messaging_angles",
     "n8n_request_candidates"
   ],
   "must_not_do": [

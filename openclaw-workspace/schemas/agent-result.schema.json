@@ -8,6 +8,8 @@
   "properties": {
     "type": { "type": "string", "const": "agent_result" },
     "agent": { "$ref": "common.schema.json#/$defs/agent_id" },
+    "role_context": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "business_context": { "$ref": "common.schema.json#/$defs/open_object" },
     "event_type": { "type": "string", "minLength": 1, "maxLength": 160 },
     "classification": { "type": "string", "minLength": 1, "maxLength": 80 },
     "confidence": { "$ref": "common.schema.json#/$defs/confidence" },
@@ -41,6 +43,30 @@
       "type": "array",
       "maxItems": 20,
       "items": { "$ref": "request-candidate.schema.json" }
-    }
+    },
+    "runtime": { "$ref": "common.schema.json#/$defs/open_object" },
+    "lead_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "business_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "recommended_questions": { "$ref": "common.schema.json#/$defs/string_list" },
+    "qualification_scores": { "$ref": "common.schema.json#/$defs/open_object" },
+    "automation_assessment": { "$ref": "common.schema.json#/$defs/open_object" },
+    "orchestration_assessment": { "$ref": "common.schema.json#/$defs/open_object" },
+    "qualification": { "$ref": "common.schema.json#/$defs/open_object" },
+    "subject_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "research_lens": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "opportunity_signals": { "$ref": "common.schema.json#/$defs/string_list" },
+    "risk_signals": { "$ref": "common.schema.json#/$defs/string_list" },
+    "answer_draft": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "clarifying_questions": { "$ref": "common.schema.json#/$defs/string_list" },
+    "observed_signals": { "$ref": "common.schema.json#/$defs/string_list" },
+    "inferred_signals": { "$ref": "common.schema.json#/$defs/string_list" },
+    "recommendations": { "$ref": "common.schema.json#/$defs/string_list" },
+    "messaging_angles": { "$ref": "common.schema.json#/$defs/string_list" },
+    "severity": { "enum": ["low", "medium", "high", "critical"] },
+    "operations_impact_lens": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "sanitized_summary": { "$ref": "common.schema.json#/$defs/safe_text" },
+    "trace_refs": { "$ref": "common.schema.json#/$defs/string_list" },
+    "likely_owner": { "enum": ["openclaw", "n8n", "external_service", "configuration", "unknown"] },
+    "retry_metadata": { "type": ["object", "null"], "additionalProperties": true }
   }
 }

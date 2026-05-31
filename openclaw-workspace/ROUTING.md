@@ -55,6 +55,8 @@ Allowed categories:
 | n8n-packaged event/context | Target agent | Expected classifications | Allowed request candidates |
 | --- | --- | --- | --- |
 | Contact form intake completed | `lead-qualification-agent` | `continue_dialogue`, `qualified_candidate`, `reject_spam` | `workflow_request`, `communication_request`, `context_request`, `memory_update`, `handoff`, `human_intervention` |
+| Audit request or planning request submitted | `lead-qualification-agent` | `audit_candidate`, `needs_more_info`, `qualified_candidate`, `escalate` | `workflow_request`, `communication_request`, `context_request`, `memory_update`, `handoff`, `human_intervention` |
+| Deployment or managed AI operations opportunity | `lead-qualification-agent` | `deployment_candidate`, `audit_candidate`, `needs_more_info`, `escalate` | `workflow_request`, `communication_request`, `context_request`, `memory_update`, `handoff`, `human_intervention` |
 | Lead spam/authenticity concern | `lead-qualification-agent` | `reject_spam`, `needs_more_info`, `escalate` | `workflow_request`, `memory_update`, `human_intervention` |
 | Lead asks service/support question | `lead-qualification-agent`, then `handoff` to `helpdesk-agent` when needed | `handoff_ready` | `handoff`, `context_request` |
 | Qualified or ambiguous lead needs company/account context | `research-agent` | `research_summary_ready`, `needs_more_info`, `handoff_ready` | `context_request`, `memory_update`, `workflow_request`, `communication_request`, `handoff` |
@@ -75,6 +77,7 @@ Allowed categories:
 | Research finds service/policy question | `helpdesk-agent` | service answer is outside Research Agent scope |
 | Helpdesk detects sales/lead qualification opportunity | `lead-qualification-agent` | qualification reasoning is outside Helpdesk scope |
 | Helpdesk detects incident/security concern | `health-monitoring-agent` | incident reasoning is outside Helpdesk scope |
+| Helpdesk detects unclear pricing, entitlement, or contract scope | human review or `lead-qualification-agent` | pricing and scope need approved business context |
 | Marketing needs account evidence | `research-agent` | research evidence is outside Marketing scope |
 | Marketing detects lead qualification issue | `lead-qualification-agent` | qualification is outside Marketing scope |
 | Any agent detects workflow failure or unsafe execution | `health-monitoring-agent` | recovery and incident reasoning belongs to Health |

@@ -38,10 +38,36 @@ const requestTypes = new Set([
   "human_intervention",
 ]);
 
+const businessContext = {
+  company: "Syntrixa",
+  role: "managed AI operations, automation, and orchestration partner",
+  primaryCustomers: ["small non-core tech businesses", "small agencies", "ecommerce product companies"],
+  engagementModel: ["lead", "discovery", "audit_or_planning", "contract", "build", "deploy", "managed_monthly_operations"],
+};
+
+const roleContexts = {
+  syntra: "experienced AI operations supervisor and agent-orchestration director",
+  "lead-qualification-agent": "experienced B2B lead qualifier and discovery strategist",
+  "research-agent": "experienced business research analyst",
+  "helpdesk-agent": "experienced helpdesk receptionist and client support coordinator",
+  "marketing-sales-agent": "experienced B2B marketing and sales strategist",
+  "health-monitoring-agent": "experienced AI operations reliability analyst",
+};
+
 function sendJson(res, status, body) {
   const data = JSON.stringify(body, null, 2);
   res.writeHead(status, {
     "content-type": "application/json",
+    "content-length": Buffer.byteLength(data),
+  });
+  res.end(data);
+}
+
+function sendNoStoreJson(res, status, body) {
+  const data = JSON.stringify(body, null, 2);
+  res.writeHead(status, {
+    "content-type": "application/json",
+    "cache-control": "no-store",
     "content-length": Buffer.byteLength(data),
   });
   res.end(data);
@@ -138,6 +164,15 @@ function workflowRequest(agent, category, workflow, payload, priority = "normal"
   };
 }
 
+function handoffRequest(agent, targetAgent, reason, contextSummary, priority = "normal") {
+  return {
+    ...baseCandidate(agent, "handoff", "escalation", priority),
+    target_agent: targetAgent,
+    reason,
+    context_summary: contextSummary,
+  };
+}
+
 function humanIntervention(agent, reason, decisionNeeded, priority = "urgent") {
   return {
     ...baseCandidate(agent, "human_intervention", "escalation", priority),
@@ -152,6 +187,43 @@ function safeText(value) {
     return "";
   }
   return value.slice(0, 8000);
+}
+
+function combinedLeadText(ctx) {
+  return safeText([
+    ctx.lead?.service_interest,
+    ctx.lead?.message,
+    ctx.lead?.workflow_description,
+    ctx.lead?.automation_goals,
+    ctx.audit_request?.summary,
+    ctx.audit_request?.workflow_description,
+    ctx.consultation?.summary,
+  ].filter(Boolean).join(" ")).toLowerCase();
+}
+
+function hasAny(text, terms) {
+  return terms.some((term) => text.includes(term));
+}
+
+function leadSignals(ctx) {
+  const text = combinedLeadText(ctx);
+  const signals = [];
+  if (hasAny(text, ["workflow", "process", "manual", "repetitive", "operations", "handoff"])) {
+    signals.push("workflow_or_operations_pain");
+  }
+  if (hasAny(text, ["agent", "ai", "automation", "automate", "copilot"])) {
+    signals.push("ai_automation_interest");
+  }
+  if (hasAny(text, ["multi-agent", "orchestration", "route", "routing", "integrate", "integration", "pipeline"])) {
+    signals.push("orchestration_or_integration_signal");
+  }
+  if (hasAny(text, ["audit", "assessment", "evaluate", "planning", "feasibility", "map"])) {
+    signals.push("audit_or_planning_intent");
+  }
+  if (hasAny(text, ["monitor", "maintenance", "support", "monthly", "manage", "managed"])) {
+    signals.push("managed_operations_interest");
+  }
+  return signals;
 }
 
 function context(body) {
@@ -182,6 +254,8 @@ function baseResult(agent, body, classification, confidence, candidates) {
   return {
     type: "agent_result",
     agent,
+    role_context: roleContexts[agent],
+    business_context: businessContext,
     event_type: body.event_type || "unspecified_event",
     classification,
     confidence,
@@ -214,18 +288,28 @@ function baseResult(agent, body, classification, confidence, candidates) {
 
 function leadResult(body) {
   const ctx = context(body);
-  const message = safeText(ctx.lead?.message).toLowerCase();
+  const message = combinedLeadText(ctx);
   const contactRef = ctx.contact?.contact_id || ctx.subject_refs?.contact_id || "unknown_contact";
   const candidates = [];
   let classification = "continue_dialogue";
   let confidence = "medium";
+  const signals = leadSignals(ctx);
+  const asksServiceQuestion = hasAny(message, ["package", "pricing", "price", "cost", "dashboard", "support", "maintenance", "monthly", "service"]);
 
-  if (message.includes("spam") || message.includes("crypto giveaway")) {
+  if (hasAny(message, ["spam", "crypto giveaway", "casino backlinks", "buy now!!!"])) {
     classification = "reject_spam";
     confidence = "high";
     candidates.push(workflowRequest("lead-qualification-agent", "lead", "mark_lead_spam", {
       reason: "lead content matched spam indicators",
     }));
+  } else if (asksServiceQuestion && !ctx.audit_request) {
+    classification = "handoff_ready";
+    candidates.push(handoffRequest(
+      "lead-qualification-agent",
+      "helpdesk-agent",
+      "Lead asked a service, package, dashboard, pricing, support, or managed operations question outside qualification scope.",
+      "Use supplied lead/contact context only and answer from approved service or FAQ knowledge."
+    ));
   } else if (!ctx.consent || ctx.consent.can_email !== true) {
     classification = "needs_more_info";
     candidates.push(contextRequest("lead-qualification-agent", "lead", "Need consent and prior interaction context before follow-up.", [
@@ -234,18 +318,61 @@ function leadResult(body) {
       "lead",
     ]));
   } else {
+    if (signals.includes("audit_or_planning_intent")) {
+      classification = "audit_candidate";
+      confidence = "high";
+    } else if (signals.includes("orchestration_or_integration_signal") || signals.includes("managed_operations_interest")) {
+      classification = "deployment_candidate";
+      confidence = "medium";
+    } else if (signals.includes("ai_automation_interest") || signals.includes("workflow_or_operations_pain")) {
+      classification = "qualified_candidate";
+    }
     candidates.push(communicationRequest(
       "lead-qualification-agent",
       "lead_follow_up_questions",
       contactRef,
-      "Thanks for reaching out. Please share your timeline, budget range, and the main workflow you want automated."
+      "Thanks for reaching out. Please share the workflow you want evaluated, systems involved, monthly volume, success criteria, timeline, and budget range."
     ));
   }
 
   return {
     ...baseResult("lead-qualification-agent", body, classification, confidence, candidates),
+    handoff: classification === "handoff_ready" ? {
+      ready: true,
+      target_agent: "helpdesk-agent",
+      reason: "Lead asked a service, package, dashboard, pricing, support, or managed operations question outside qualification scope.",
+      context_summary: "Use supplied lead/contact context only and answer from approved service or FAQ knowledge.",
+    } : {
+      ready: false,
+      target_agent: null,
+      reason: null,
+      context_summary: null,
+    },
     lead_summary: safeText(ctx.lead?.message || "Lead context received."),
-    recommended_questions: ["What outcome do you want first?", "What systems are involved?", "What timeline matters?"],
+    business_summary: safeText(ctx.account?.company_name || ctx.lead?.service_interest || "Business context not fully supplied."),
+    signals,
+    recommended_questions: [
+      "Which workflow or process should Syntrixa evaluate first?",
+      "What systems, tools, or teams are involved?",
+      "How often does this workflow run and where does manual work slow it down?",
+      "What outcome would make an audit or implementation successful?",
+      "What timeline and budget range should planning respect?"
+    ],
+    qualification_scores: {
+      authenticity: classification === "reject_spam" ? 0 : 70,
+      business_fit: signals.length > 0 ? 75 : 45,
+      automation_potential: signals.includes("ai_automation_interest") || signals.includes("workflow_or_operations_pain") ? 80 : 40,
+      orchestration_suitability: signals.includes("orchestration_or_integration_signal") ? 80 : 45,
+      readiness: classification === "needs_more_info" ? 35 : 60,
+    },
+    automation_assessment: {
+      likely_fit: signals.includes("ai_automation_interest") || signals.includes("workflow_or_operations_pain"),
+      evidence: signals,
+    },
+    orchestration_assessment: {
+      likely_complexity: signals.includes("orchestration_or_integration_signal") ? "medium_to_high" : "unknown",
+      needs_system_map: true,
+    },
     qualification: {
       status: classification,
       source: "n8n-packaged-context",
@@ -270,6 +397,7 @@ function researchResult(body) {
   return {
     ...baseResult("research-agent", body, classification, "medium", candidates),
     subject_summary: safeText(ctx.account?.company_name || ctx.lead?.service_interest || "Research subject context received."),
+    research_lens: "map business evidence to automation fit, operational pain, orchestration opportunity, and risk.",
     opportunity_signals: [],
     risk_signals: classification === "needs_more_info" ? ["public intelligence package missing"] : [],
   };
@@ -292,7 +420,7 @@ function helpdeskResult(body) {
       "helpdesk-agent",
       "helpdesk_response",
       ctx.subject_refs?.user_id || ctx.contact?.contact_id || "requester",
-      "Prepared support response from supplied knowledge context.",
+      "Prepared support response from supplied Syntrixa service, audit, or managed operations knowledge context.",
       "dashboard"
     ));
   }
@@ -300,7 +428,7 @@ function helpdeskResult(body) {
   return {
     ...baseResult("helpdesk-agent", body, classification, "medium", candidates),
     answer_draft: classification === "answer_ready" ? "Answer draft prepared from supplied context." : "",
-    clarifying_questions: classification === "needs_more_info" ? ["Which service or policy should be used for this answer?"] : [],
+    clarifying_questions: classification === "needs_more_info" ? ["Is this about audit/planning, implementation, monthly management, pricing, maintenance, or support entitlement?"] : [],
   };
 }
 
@@ -325,8 +453,8 @@ function marketingResult(body) {
     ...baseResult("marketing-sales-agent", body, classification, "medium", candidates),
     observed_signals: [],
     inferred_signals: [],
-    recommendations: classification === "recommendation_ready" ? ["Review campaign segment with strongest conversion signal."] : [],
-    messaging_angles: [],
+    recommendations: classification === "recommendation_ready" ? ["Review the segment with the strongest operations, automation, or orchestration intent signal."] : [],
+    messaging_angles: ["managed AI operations partner", "reduce repetitive manual workflows", "connect fragmented systems", "custom automation and orchestration"],
   };
 }
 
@@ -355,6 +483,7 @@ function healthResult(body) {
   return {
     ...baseResult("health-monitoring-agent", body, classification, critical ? "high" : "medium", candidates),
     severity: ctx.failure_context?.severity || (critical ? "critical" : "medium"),
+    operations_impact_lens: "evaluate managed monthly operations impact, retry safety, and client-facing escalation need.",
     sanitized_summary: safeText(ctx.failure_context?.summary || "Health context received."),
     trace_refs: ctx.trace_refs || [],
     likely_owner: ctx.failure_context?.likely_owner || "unknown",
@@ -389,7 +518,7 @@ function inferAgent(body) {
     return body.agent;
   }
   const eventType = String(body.event_type || "").toLowerCase();
-  if (eventType.includes("lead") || eventType.includes("contact")) return "lead-qualification-agent";
+  if (eventType.includes("lead") || eventType.includes("contact") || eventType.includes("audit") || eventType.includes("consultation")) return "lead-qualification-agent";
   if (eventType.includes("research")) return "research-agent";
   if (eventType.includes("helpdesk") || eventType.includes("support") || eventType.includes("faq")) return "helpdesk-agent";
   if (eventType.includes("marketing") || eventType.includes("campaign") || eventType.includes("sales")) return "marketing-sales-agent";
@@ -462,6 +591,76 @@ function invoke(body) {
   return { status: 200, body: { ok: true, result } };
 }
 
+function proxyResponse(kind, body) {
+  const requestId = body.request_id || body.id || randomUUID();
+  const base = {
+    ok: true,
+    kind,
+    request_id: requestId,
+    collected_at: now(),
+    constraints: {
+      no_raw_secrets: true,
+      minimal_context: true,
+      ...(body.constraints || {}),
+    },
+    source: "syntrixa-local-dev-proxy",
+  };
+
+  if (kind === "public_intelligence") {
+    return {
+      ...base,
+      public_intelligence: [
+        {
+          source_type: "local_stub",
+          title: "Public intelligence connector placeholder",
+          summary: "Replace PUBLIC_INTEL_PROXY_URL with the approved scraper/search service before production.",
+          confidence: "low",
+        },
+      ],
+    };
+  }
+
+  if (kind === "marketing_analytics") {
+    return {
+      ...base,
+      analytics_context: {
+        campaign_id: body.campaign_id || body.payload?.campaign_id || `campaign-${requestId}`,
+        metrics: [
+          { channel: "linkedin", impressions: 1840, clicks: 96, leads: 7, conversion_rate: 0.073 },
+          { channel: "email", impressions: 620, clicks: 88, leads: 11, conversion_rate: 0.125 },
+          { channel: "website", impressions: 1320, clicks: 141, leads: 9, conversion_rate: 0.064 },
+        ],
+        audience_segments: [
+          "small agencies with manual client reporting",
+          "ecommerce teams with inventory/support friction",
+          "service businesses needing managed AI operations",
+        ],
+        summary: "Local marketing analytics package assembled for campaign planning. Replace MARKETING_ANALYTICS_PROXY_URL with approved live analytics when production credentials exist.",
+      },
+      crm_context: {
+        lifecycle_stage: "discovery",
+        intent_signals: ["workflow audit request", "manual operations pain", "interest in managed monthly AI operations"],
+        objections: ["implementation complexity", "scope clarity", "monthly support boundaries"],
+      },
+      social_accounts: {
+        linkedin: { connected: Boolean(process.env.LINKEDIN_ACCESS_TOKEN), action: "stage_post" },
+        x: { connected: Boolean(process.env.X_ACCESS_TOKEN), action: "stage_post" },
+        instagram: { connected: Boolean(process.env.META_ACCESS_TOKEN), action: "stage_asset_review" },
+        email: { connected: Boolean(process.env.SMTP_HOST || process.env.RESEND_API_KEY), action: "stage_sequence" },
+      },
+    };
+  }
+
+  return {
+    ...base,
+    monitoring_context: {
+      status: "ok",
+      check: body.check || kind,
+      summary: `${kind} local development check completed.`,
+    },
+  };
+}
+
 if (process.argv[2] === "--fixture") {
   const fixturePath = process.argv[3];
   if (!fixturePath) {
@@ -482,6 +681,23 @@ const server = http.createServer(async (req, res) => {
       version: contractVersion,
       agents: Array.from(agents),
     });
+  }
+
+  const internalProxyKinds = {
+    "/internal/public-intelligence": "public_intelligence",
+    "/internal/marketing-analytics": "marketing_analytics",
+    "/internal/infra-health": "infra_health",
+    "/internal/docker-health": "docker_health",
+    "/internal/vps-monitoring": "vps_monitoring",
+  };
+
+  if (req.method === "POST" && internalProxyKinds[req.url]) {
+    try {
+      const body = await collectJson(req);
+      return sendNoStoreJson(res, 200, proxyResponse(internalProxyKinds[req.url], body));
+    } catch (error) {
+      return sendNoStoreJson(res, 400, { ok: false, errors: [error.message] });
+    }
   }
 
   if (req.method === "POST" && req.url === "/openclaw/agent/invoke") {

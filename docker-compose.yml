@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.nemoclaw
+    image: syntrixaofficial/project1:nemoclaw
     container_name: syntrixa-nemoclaw
     hostname: nemoclaw
     privileged: true
@@ -10,7 +11,6 @@ services:
       - .env
     working_dir: /workspace/openclaw-workspace
     volumes:
-      - ./openclaw-workspace:/workspace/openclaw-workspace
       - nemoclaw-home:/root
       - nemoclaw-docker:/var/lib/docker
     ports:
@@ -19,9 +19,6 @@ services:
     expose:
       - "18789"
       - "8990"
-      - "8000"
-      - "11434"
-      - "11435"
     environment:
       NEMOCLAW_GATEWAY_BIND_ADDRESS: 0.0.0.0
       NEMOCLAW_GATEWAY_PORT: 8990
@@ -38,7 +35,7 @@ services:
       NEMOCLAW_ACCEPT_THIRD_PARTY_SOFTWARE: "1"
       NEMOCLAW_YES: "1"
       N8N_BASE_URL: http://n8n:5678
-      N8N_OPENCLAW_WEBHOOK_PATH: /webhook/openclaw/intent
+      N8N_OPENCLAW_WEBHOOK_PATH: /webhook/openclaw/intent/
       SYNTRA_MODEL_PROVIDER: ${SYNTRA_MODEL_PROVIDER:-}
       SYNTRA_MODEL_NAME: ${SYNTRA_MODEL_NAME:-}
       SYNTRA_MODEL_ENDPOINT_URL: ${SYNTRA_MODEL_ENDPOINT_URL:-}
@@ -63,10 +60,202 @@ services:
       HEALTH_MONITORING_MODEL_NAME: ${HEALTH_MONITORING_MODEL_NAME:-}
       HEALTH_MONITORING_MODEL_ENDPOINT_URL: ${HEALTH_MONITORING_MODEL_ENDPOINT_URL:-}
       HEALTH_MONITORING_MODEL_API_KEY: ${HEALTH_MONITORING_MODEL_API_KEY:-}
+      LINKEDIN_ACCESS_TOKEN: ${LINKEDIN_ACCESS_TOKEN:-}
+      X_ACCESS_TOKEN: ${X_ACCESS_TOKEN:-}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
     networks:
       syntrixa:
         aliases:
           - nemoclaw
+
+  dashboard-api:
+    build:
+      context: ./dashboard-api
+      dockerfile: Dockerfile
+    image: syntrixaofficial/project1:dashboard-api
+    container_name: syntrixa-dashboard-api
+    hostname: dashboard-api
+    env_file:
+      - .env
+    environment:
+      DASHBOARD_API_HOST: 0.0.0.0
+      DASHBOARD_API_PORT: 8080
+      OPENCLAW_BASE_URL: http://nemoclaw:8990
+      N8N_INTENT_WEBHOOK_URL: http://n8n:5678/webhook/openclaw/intent/
+      DASHBOARD_STATE_FILE: /app/data/dashboard-state.json
+    ports:
+      - "127.0.0.1:18080:8080"
+    expose:
+      - "8080"
+    volumes:
+      - dashboard-data:/app/data
+    depends_on:
+      - nemoclaw
+      - n8n
+    networks:
+      syntrixa:
+        aliases:
+          - dashboard-api
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: syntrixa-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-syntrixa}
+      POSTGRES_USER: ${POSTGRES_USER:-syntrixa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-syntrixa-local-postgres}
+    ports:
+      - "127.0.0.1:15432:5432"
+    expose:
+      - "5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      syntrixa:
+        aliases:
+          - postgres
+
+  mongodb:
+    image: mongo:4.4
+    container_name: syntrixa-mongodb
+    hostname: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-syntrixa}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-syntrixa-local-mongo}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-syntrixa}
+      LINKEDIN_ACCESS_TOKEN: ${LINKEDIN_ACCESS_TOKEN:-}
+      X_ACCESS_TOKEN: ${X_ACCESS_TOKEN:-}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+    ports:
+      - "127.0.0.1:27017:27017"
+    expose:
+      - "27017"
+    volumes:
+      - mongodb-data:/data/db
+      - ./database/mongodb/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongo --quiet -u \"$${MONGO_INITDB_ROOT_USERNAME}\" -p \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      syntrixa:
+        aliases:
+          - mongodb
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: syntrixa-n8n
+    hostname: n8n
+    env_file:
+      - .env
+    environment:
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-syntrixa-local-dev-change-this-32-chars}
+      N8N_EDITOR_BASE_URL: http://127.0.0.1:5678/
+      WEBHOOK_URL: http://127.0.0.1:5678/
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Calcutta}
+      OPENCLAW_AGENT_INVOKE_URL: http://nemoclaw:8990/openclaw/agent/invoke
+      API_HEALTH_URL: http://nemoclaw:8990/openclaw/health
+      PUBLIC_INTEL_PROXY_URL: http://nemoclaw:8990/internal/public-intelligence
+      MARKETING_ANALYTICS_PROXY_URL: http://nemoclaw:8990/internal/marketing-analytics
+      INFRA_MONITORING_PROXY_URL: http://nemoclaw:8990/internal/infra-health
+      DOCKER_HEALTH_PROXY_URL: http://nemoclaw:8990/internal/docker-health
+      VPS_MONITORING_PROXY_URL: http://nemoclaw:8990/internal/vps-monitoring
+      DASHBOARD_API_EVENT_URL: http://dashboard-api:8080/api/n8n/events
+      DASHBOARD_API_CANDIDATE_URL: http://dashboard-api:8080/api/n8n/request-candidates
+      POSTGRES_DB: ${POSTGRES_DB:-syntrixa}
+      POSTGRES_USER: ${POSTGRES_USER:-syntrixa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-syntrixa-local-postgres}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-syntrixa}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-syntrixa-local-mongo}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-syntrixa}
+    ports:
+      - "127.0.0.1:5678:5678"
+    expose:
+      - "5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./newn8n.json:/workflows/newn8n.json:ro
+    depends_on:
+      nemoclaw:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      syntrixa:
+        aliases:
+          - n8n
+
+  n8n-import:
+    image: n8nio/n8n:latest
+    container_name: syntrixa-n8n-import
+    profiles:
+      - tools
+    env_file:
+      - .env
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-syntrixa-local-dev-change-this-32-chars}
+      N8N_SECURE_COOKIE: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Calcutta}
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./newn8n.json:/workflows/newn8n.json:ro
+      - ./n8n/credentials.local.json:/workflows/credentials.local.json:ro
+    entrypoint:
+      - sh
+      - -c
+      - n8n import:credentials --input=/workflows/credentials.local.json && n8n import:workflow --input=/workflows/newn8n.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      syntrixa:
+        aliases:
+          - n8n-import
+
+  dashboard-ui:
+    build:
+      context: ./dashboard-ui
+      dockerfile: Dockerfile
+    image: syntrixaofficial/project1:dashboard-ui
+    container_name: syntrixa-dashboard-ui
+    hostname: dashboard-ui
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - dashboard-api
+    networks:
+      syntrixa:
+        aliases:
+          - dashboard-ui
 
 networks:
   syntrixa:
@@ -75,3 +264,7 @@ networks:
 volumes:
   nemoclaw-home:
   nemoclaw-docker:
+  dashboard-data:
+  n8n-data:
+  postgres-data:
+  mongodb-data:

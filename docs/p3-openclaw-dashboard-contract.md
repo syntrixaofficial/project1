@@ -79,3 +79,44 @@ P3 should read from P2/P3-provided APIs or dashboard storage, not directly from 
 n8n owns persistence and determines what dashboard-safe data is stored.
 
 OpenClaw only supplies reasoning results and request candidates through n8n.
+
+## Current Dashboard API Hooks
+
+The local P3 dashboard backend is `dashboard-api`.
+
+Browser/UI-facing endpoints:
+
+- `GET /api/dashboard` - complete dashboard state
+- `GET /api/activity` - dashboard-safe live activity
+- `GET /api/request-candidates` - sanitized request candidate queue
+- `GET /api/agents` - agent status summaries
+- `GET /api/approvals` - human approval queue
+- `POST /api/chat` - human-to-Syntra dashboard chat
+- `POST /api/agents/invoke` - dashboard-owned OpenClaw invoke proxy
+- `POST /api/workflows` - create a dashboard workflow card and request candidate
+- `POST /api/kanban/:task_id/move` - update dashboard Kanban state
+- `POST /api/approvals/:approval_id/approve|edit|reject` - record human decision
+
+n8n-facing ingest endpoints:
+
+- `POST /api/n8n/events`
+- `POST /api/n8n/request-candidates`
+
+Inside Docker, n8n should call:
+
+```text
+http://dashboard-api:8080/api/n8n/events
+http://dashboard-api:8080/api/n8n/request-candidates
+```
+
+If `DASHBOARD_INGEST_TOKEN` is configured, n8n should send it as either:
+
+```text
+X-Syntrixa-Dashboard-Token: <token>
+```
+
+or:
+
+```text
+Authorization: Bearer <token>
+```

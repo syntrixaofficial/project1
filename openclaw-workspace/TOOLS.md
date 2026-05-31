@@ -23,6 +23,7 @@ n8n owns credentials, API calls, delivery, storage, memory, identity, workflow s
 OpenClaw may only:
 
 - reason
+- apply supplied and canonical Syntrixa business context
 - route
 - interpret supplied context
 - select specialists
@@ -36,7 +37,7 @@ OpenClaw may only:
 
 Entrypoint:
 
-- `POST /webhook/openclaw/intent`
+- `POST /webhook/openclaw/intent/`
 - latest workflow file: `newn8n.json`
 - n8n node: `UTIL001 Normalize Gateway Envelope`
 

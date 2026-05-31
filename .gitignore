@@ -1,8 +1,13 @@
 .env
+.env.n8n
+n8n/credentials.local.json
 .docker/
 .openclaw
 openclaw-state
 node_modules
+dist
+.npm-cache
+*.tsbuildinfo
 *.log
 __pycache__/
 .pytest_cache/
